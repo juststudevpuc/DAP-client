@@ -36,13 +36,13 @@ export const WeeklyHeader = ({ planData }) => {
                 {/* Row 1: Employee, Dates, Week */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="text-left">
-                        Name/ ឈ្មោះ: Tep Panhasak
+                        Name: Tep Panhasak
                     </div>
                     <div className="text-center">
                         Date.: {formatDate(planData?.start_date)} to {formatDate(planData?.end_date)}
                     </div>
                     <div className="text-right">
-                        Week/ សប្តាហ៍: {planData?.week_number?.toString().padStart(2, '0') || '01'}
+                        Week: {planData?.week_number?.toString().padStart(2, '0') || '01'}
                     </div>
                 </div>
 

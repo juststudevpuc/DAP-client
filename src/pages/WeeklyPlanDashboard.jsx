@@ -29,8 +29,8 @@ export const WeeklyPlanDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <Card className="max-w-[1200px] mx-auto p-8 bg-white shadow-sm border-gray-300">
+    <div className="min-h-screen bg-gray-50 p-5">
+      <Card className=" mx-auto p-6 bg-white shadow-sm border-gray-300">
         <WeeklyHeader planData={planData} />
         <ActionPlanGrid dailyMetrics={planData.daily_metrics} />
         <WeeklyFooter planData={planData} />
