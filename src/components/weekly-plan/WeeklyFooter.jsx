@@ -27,7 +27,7 @@ export const WeeklyFooter = ({ planData }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
       {/* Left Side: Summary Statistics */}
       <div>
-        <h3 className="font-bold text-base mb-4">
+        <h3 className="font-bold text-[15px] mb-2">
           Last week summary/សេចក្តីសង្ខេបកាលពីសប្តាហ៍មុន:
         </h3>
 
@@ -57,10 +57,10 @@ export const WeeklyFooter = ({ planData }) => {
       </div>
 
       {/* Right Side: Reflections */}
-      <div className="space-y-2">
+      <div className="">
         {/* Row 1 */}
-        <div className="grid grid-cols-[130px_1fr] items-end gap-2">
-          <label className="text-[10px] font-semibold text-gray-700 pb-1">
+        <div className="grid grid-cols-[130px_1fr] items-end gap-8">
+          <label className="text-[15px] font-semibold text-gray-700 pb-1">
             អ្វីដែលអាចទៅរួច?
           </label>
           <Textarea
@@ -71,7 +71,7 @@ export const WeeklyFooter = ({ planData }) => {
 
         {/* Row 2 */}
         <div className="grid grid-cols-[130px_1fr] items-end gap-2">
-          <label className="text-[10px] font-semibold text-gray-700 pb-1">
+          <label className="text-[15px] font-semibold text-gray-700 pb-1">
             អ្វីដែលមិនអាចទៅរួច?
           </label>
           <Textarea
@@ -82,7 +82,7 @@ export const WeeklyFooter = ({ planData }) => {
 
         {/* Row 3 */}
         <div className="grid grid-cols-[130px_1fr] items-end gap-2">
-          <label className="text-[10px] font-semibold text-gray-700 pb-1">
+          <label className="text-[15px] font-semibold text-gray-700 pb-1">
             ចុះអ្វីដែលពង្រឹងបន្ថែម?
           </label>
           <Textarea
@@ -93,7 +93,7 @@ export const WeeklyFooter = ({ planData }) => {
 
         {/* Row 4 */}
         <div className="grid grid-cols-[130px_1fr] items-end gap-2">
-          <label className="text-[10px] font-semibold text-gray-700 pb-1">
+          <label className="text-[15px] font-semibold text-gray-700 pb-1">
             ចុះអ្វីដែលត្រូវធ្វើបន្ទាប់?
           </label>
           <Textarea

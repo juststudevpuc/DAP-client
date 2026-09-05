@@ -1,28 +1,120 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { apiService } from "../../services/api";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-// 1. Field stays outside for performance
-const Field = ({ label, name, register }) => (
-  <div className="flex justify-between items-center text-[10px] my-1">
-    <span className="text-gray-700 truncate mr-2">{label}:</span>
-    <Input
-      type="number"
-      {...register(name)}
-      className="h-3 w-6 px-0 py-0 text-center text-[8px] font-medium bg-transparent border-0 border-b border-gray-300 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-    />
-  </div>
-);
+// 1. Updated Field: Now a 3x4 Numpad with 2-digit limit and Delete!
+const Field = ({ label, name, register, watch, setValue }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // 'watch' reads the current value dynamically from react-hook-form
+  const currentValue = watch(name);
+
+  // LOGIC 1: Combine numbers together, limit to 2 digits max
+  const handleDigitClick = (digit) => {
+    const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
+    
+    // Stop adding if it's already 2 digits!
+    if (prevStr.length >= 2) return;
+
+    const newNumber = Number(prevStr + digit);
+    setValue(name, newNumber, { shouldDirty: true });
+  };
+
+  // LOGIC 2: Delete the last number (Backspace)
+  const handleDelete = () => {
+    const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
+    
+    if (prevStr.length <= 1) {
+      // If it's 1 digit (or empty), just reset to 0
+      setValue(name, 0, { shouldDirty: true });
+    } else {
+      // Slice off the last character
+      const newNumber = Number(prevStr.slice(0, -1));
+      setValue(name, newNumber, { shouldDirty: true });
+    }
+  };
+
+  return (
+    <div className="flex justify-between items-center text-[10px] my-1 relative">
+      <span className="text-black font-medium truncate mr-2">{label}:</span>
+
+      {/* Hidden input keeps react-hook-form working perfectly in the background */}
+      <input type="hidden" {...register(name)} />
+
+      {/* Trigger: Looks exactly like your minimal printed line */}
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="h-3 w-6 px-0 py-0 text-center text-[8px] font-bold bg-transparent border-0 border-b border-gray-300 cursor-pointer flex items-center justify-center hover:border-blue-500 transition-colors"
+      >
+        {currentValue !== undefined ? currentValue : 0}
+      </div>
+
+      {/* Numpad Popover */}
+      {isOpen && (
+        <>
+          {/* Invisible overlay: clicking anywhere outside closes the grid */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div className="absolute right-0 top-4 z-50 bg-white border border-gray-200 shadow-xl p-1.5 rounded-md print:hidden">
+            
+            {/* Tailwind's CSS Grid: 3 columns for a standard Numpad */}
+            <div className="grid grid-cols-3 gap-1 w-[90px]">
+              
+              {/* Digits 1-9 */}
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <div
+                  key={num}
+                  onClick={() => handleDigitClick(num)}
+                  className="flex items-center justify-center text-[10px] h-6 w-6 bg-gray-50 hover:bg-blue-600 hover:text-white cursor-pointer rounded-sm transition-colors border border-gray-100 font-medium select-none"
+                >
+                  {num}
+                </div>
+              ))}
+
+              {/* Bottom Row: Delete, 0, OK */}
+              <div
+                onClick={handleDelete}
+                className="flex items-center justify-center text-[9px] h-6 w-6 bg-red-50 hover:bg-red-500 hover:text-white text-red-600 cursor-pointer rounded-sm transition-colors border border-red-100 font-medium select-none"
+              >
+                Del
+              </div>
+
+              <div
+                onClick={() => handleDigitClick(0)}
+                className="flex items-center justify-center text-[10px] h-6 w-6 bg-gray-50 hover:bg-blue-600 hover:text-white cursor-pointer rounded-sm transition-colors border border-gray-100 font-medium select-none"
+              >
+                0
+              </div>
+
+              <div
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-center text-[9px] h-6 w-6 bg-green-50 hover:bg-green-500 hover:text-white text-green-600 cursor-pointer rounded-sm transition-colors border border-green-100 font-bold select-none"
+              >
+                OK
+              </div>
+
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 export const DailyRow = ({ dayData }) => {
-  // 2. Destructure 'formState: { isDirty }' to track changes, and 'reset' to clear the dirty state after saving
+  // 2. Added 'watch' and 'setValue' to the destructuring
   const {
     register,
     handleSubmit,
     formState: { isDirty },
     reset,
+    watch,
+    setValue,
   } = useForm({
     defaultValues: {
       train_expected: dayData.train_expected,
@@ -63,83 +155,107 @@ export const DailyRow = ({ dayData }) => {
 
   return (
     <tr className="border-b border-gray-800 hover:bg-gray-50 transition-colors">
-      {/* Day Column - Kept very narrow */}
+      {/* Day Column */}
       <td className="p-1 border-r border-gray-800 text-center font-semibold text-[10px] align-middle w-[3%]">
         {dayData.day_name}
       </td>
 
-      {/* Training Column - Reduced padding (px-1 py-0.5) to save vertical space */}
-      {/* Training Column - Fixed Width */}
-      <td className="px-1 py-0.5 border-r border-gray-800 align-top w-[18px]">
+      {/* Training Column */}
+      <td className="px-1 border-r border-gray-800  w-[18px] text-blue-600 ">
+        {/* Passed watch and setValue to every field */}
         <Field
           label="Expected Training"
           name="train_expected"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Completed Training"
           name="train_completed"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Cancel/Delay"
           name="train_cancel_delay"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
       </td>
 
-      {/* Onboarding Column - Fixed Width */}
-      <td className="px-1 py-0.5 border-r border-gray-800 align-top w-[280px]">
+      {/* Onboarding Column */}
+      <td className="px-1  border-r border-gray-800 align-top w-[280px] text-blue-500">
         <Field
           label="Company's Information"
           name="onboard_company_info"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="System Analysis(All 80%)"
           name="onboard_system_analysis"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Configure HR"
           name="onboard_configure_hr"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Provide Lesson(Path)"
           name="onboard_provide_lesson"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Success Onboarding"
           name="onboard_success"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
       </td>
 
-      {/* Graduated Column - Fixed Width */}
-      <td className="px-1 py-0.5 border-r border-gray-800 align-top w-[220px]">
+      {/* Graduated Column */}
+      <td className="px-1  border-r border-gray-800 w-[220px] text-blue-500">
         <Field
           label="Provided Certificate"
           name="grad_certificate"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
         <Field
           label="Provided HR Policy"
           name="grad_hr_policy"
           register={register}
+          watch={watch}
+          setValue={setValue}
         />
-        <Field label="Provided Book" name="grad_book" register={register} />
+        <Field
+          label="Provided Book"
+          name="grad_book"
+          register={register}
+          watch={watch}
+          setValue={setValue}
+        />
       </td>
 
-      {/* Comment Column - Fixed Width & Strictly Fixed Height */}
+      {/* Comment Column */}
       <td className="p-1 text-center align-middle relative w-[320px]">
         <div className="flex flex-col h-full w-full relative group">
           <Textarea
             {...register("comment")}
             wrap="soft"
-            // We kept the 90px height, break-all, and scrolling...
-            // But swapped the border/focus styling to match your minimal aesthetic!
             className="h-[90px] min-h-[90px] max-h-[90px] w-full p-1 text-[9px] text-left align-top break-all overflow-y-auto overflow-x-hidden resize-none bg-transparent border-0 border-b border-gray-300 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-blue-500"
             placeholder="Notes..."
           />

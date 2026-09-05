@@ -128,3 +128,17 @@
     @apply font-sans;
     }
 }
+
+@media print {
+  @page {
+    /* Set to 'landscape' if your grid is too wide for portrait */
+    size: A4 landscape; 
+    margin: 10mm; /* Clean, standard print margin */
+  }
+  
+  /* Forces the browser to print your background colors/stripes */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
