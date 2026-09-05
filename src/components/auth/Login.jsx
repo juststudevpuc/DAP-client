@@ -107,6 +107,9 @@ export const Login = () => {
             {isSubmitting ? "Signing in..." : "Sign In"}
           </Button>
         </form>
+        <div className="">
+          <a href="/register">Register</a>
+        </div>
       </div>
     </div>
   );
