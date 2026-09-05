@@ -12,6 +12,7 @@ const apiClient = axios.create({
     }
 });
 
+
 // 2. Request Interceptor: Automatically attach the token
 apiClient.interceptors.request.use(
     (config) => {
