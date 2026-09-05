@@ -76,11 +76,11 @@ export function RegisterForm({ className, ...props }) {
               
               {/* Name */}
               <Field>
-                <FieldLabel htmlFor="name">Name</FieldLabel>
+                <FieldLabel htmlFor="name">Full Name</FieldLabel>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="e.g Tep Panhasak"
                   {...register("name")}
                   className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
