@@ -114,7 +114,7 @@ export function Landing() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 gap-8 shadow-blue-300">
               {[
             
                 {
