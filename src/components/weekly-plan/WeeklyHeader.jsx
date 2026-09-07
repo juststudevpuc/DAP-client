@@ -1,26 +1,35 @@
-// 1. Import your Zustand store
+import { useState, useEffect } from "react";
 import useAuthStore from "../../store/useAuthStore"; 
 
 export const WeeklyHeader = ({ planData }) => {
-  // 2. Extract the user object from global state
   const user = useAuthStore((state) => state.user);
 
-  // Helper function to format Laravel timestamps into clean "DD / MM / YYYY" text
-  const formatDate = (dateString) => {
-    if (!dateString) return "...";
-    const date = new Date(dateString);
-    return date
-      .toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-      .replace(/\//g, " / ");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [weekNumber, setWeekNumber] = useState("");
+
+  useEffect(() => {
+    if (planData) {
+      const formatForInput = (dateStr) => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+      };
+
+      setStartDate(formatForInput(planData.start_date));
+      setEndDate(formatForInput(planData.end_date));
+      setWeekNumber(planData.week_number || "1");
+    }
+  }, [planData]);
+
+  const formatDisplayDate = (isoString) => {
+    if (!isoString) return ".... / .... / ....";
+    const [year, month, day] = isoString.split("-");
+    return `${day} / ${month} / ${year}`;
   };
 
   return (
     <div className="">
-      {/* Top Title Section */}
       <div className="flex items-center justify-center mb- relative">
         <div className="absolute left-0 text-blue-600 font-bold text-xl flex items-center gap-2">
           <img src="/checkinme-logo.jpg" alt="Hero Banner" className="w-6 h-6" />
@@ -32,28 +41,83 @@ export const WeeklyHeader = ({ planData }) => {
           </div>
         </div>
 
-        <h1 className="text-[15px] font-bold text-center text-gray-900 tracking-tight">
-          Weekly Action Plan
+        <h1 className="text-[15px] font-bold text-center text-gray-900 tracking-tight print:text-[18px]">
+          Weekly Action Plan ផែនការសកម្មភាពប្រចាំសប្តាហ៍
         </h1>
       </div>
 
-      {/* Information Rows */}
       <div className="flex flex-col gap-6 text-[12px] font-semibold text-gray-800 px-2 mt-3">
         
-        {/* Row 1: Employee, Dates, Week */}
-        <div className="grid grid-cols-3 gap-4">
-          {/* 3. Dynamically display the logged-in user's name */}
-          <div className="text-left">Name: {user?.name || "Loading..."}</div>
-        
-          <div className="text-center">
-            Date.: {formatDate(planData?.start_date)} to{" "}
-            {formatDate(planData?.end_date)}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="text-left">
+            Name/ ឈ្មោះ: {user?.name || "Loading..."}
           </div>
-          <div className="text-right">
-            Week: {planData?.week_number?.toString().padStart(2, "0") || "01"}
+        
+          {/* EDITABLE DATES WITH ICONS */}
+          <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+            <span>Date:</span>
+            
+            {/* Start Date */}
+            <div className="relative inline-flex items-center justify-center group">
+              <span className="border-b border-gray-400 px-1 min-w-[90px] text-center text-[12px] font-medium pb-[1px]">
+                {formatDisplayDate(startDate)}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 ml-1 print:hidden group-hover:text-blue-500 transition-colors">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
+
+            <span>to</span>
+
+            {/* End Date */}
+            <div className="relative inline-flex items-center justify-center group">
+              <span className="border-b border-gray-400 px-1 min-w-[90px] text-center text-[12px] font-medium pb-[1px]">
+                {formatDisplayDate(endDate)}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 ml-1 print:hidden group-hover:text-blue-500 transition-colors">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
+          </div>
+          
+        {/* EDITABLE WEEK NUMBER (FOOLPROOF CENTER ALIGNMENT) */}
+          <div className="flex items-center justify-end gap-1 group">
+            <span>Week/ សប្តាហ៍:</span>
+            <div className="relative inline-flex items-center justify-center">
+              
+              {/* Visually centered text on the underline */}
+              <span className="border-b border-gray-400 min-w-[40px] text-center text-[12px] font-medium pb-[1px]">
+                {weekNumber}
+              </span>
+              
+              {/* Invisible text input floating on top so you can click and type without spinner arrows */}
+              <input
+                type="text"
+                value={weekNumber}
+                onChange={(e) => setWeekNumber(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-text"
+              />
+              
+              {/* Pencil Icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute -right-4 text-gray-400 print:hidden group-hover:text-blue-500 transition-colors pointer-events-none">
+                <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+            </div>
           </div>
         </div>
-        {/* Row 2: Target Metrics (Now dynamically mapped to your database!) */}
+
         <div className="grid grid-cols-3 gap-4">
           <div className="text-left">
             ប្រកាស Completed Training:{" "}
