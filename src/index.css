@@ -142,3 +142,11 @@
     print-color-adjust: exact !important;
   }
 }
+
+body {
+  font-family: 'Noto Sans Khmer', 'Khmer OS Battambang', sans-serif;
+}
+
+.font-khmer {
+  font-family: var(--font-khmer), 'Khmer OS Battambang', sans-serif;
+}
