@@ -92,26 +92,20 @@ export const WeeklyHeader = ({ planData }) => {
             </div>
           </div>
           
-        {/* EDITABLE WEEK NUMBER (FOOLPROOF CENTER ALIGNMENT) */}
+       {/* EDITABLE WEEK NUMBER (PERFECT ALIGNMENT) */}
           <div className="flex items-center justify-end gap-1 group">
             <span>Week/ សប្តាហ៍:</span>
-            <div className="relative inline-flex items-center justify-center">
-              
-              {/* Visually centered text on the underline */}
-              <span className="border-b border-gray-400 min-w-[40px] text-center text-[12px] font-medium pb-[1px]">
-                {weekNumber}
-              </span>
-              
-              {/* Invisible text input floating on top so you can click and type without spinner arrows */}
+            <div className="flex items-center gap-1">
               <input
                 type="text"
                 value={weekNumber}
                 onChange={(e) => setWeekNumber(e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-text"
+                style={{ textAlign: "center", width: "10px" , fontSize: "15px" }}
+                className="bg-transparent border-0 border-b border-gray-400 outline-none text-[12px] font-medium p-0 m-0 h-[18px] leading-none rounded-none shadow-none focus:ring-0 focus:border-blue-500 print:border-transparent"
               />
               
-              {/* Pencil Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute -right-4 text-gray-400 print:hidden group-hover:text-blue-500 transition-colors pointer-events-none">
+              {/* Pencil Icon (Standard flow, no absolute positioning to prevent shifting) */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 print:hidden group-hover:text-blue-500 transition-colors">
                 <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
               </svg>
             </div>
