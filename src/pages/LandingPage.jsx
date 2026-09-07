@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CalendarCheck, CheckCircle2, FileQuestionMark, Plane, Snowflake, Zap } from "lucide-react";
+import { ArrowRight, CalendarCheck, CheckCircle2, FileQuestionMark, Zap } from "lucide-react";
 
 export function Landing() {
   return (
@@ -155,7 +155,7 @@ export function Landing() {
               Ready to transform your workflow?
             </h2>
             <p className="text-blue-100 text-lg mb-10 max-w-2xl mx-auto">
-              Join hundreds of forward-thinking teams using CheckinMe to track,
+              Join hundreds of forward-thinking teams using SOLVE to track,
               train, and succeed together.
             </p>
             <Link
@@ -176,7 +176,7 @@ export function Landing() {
             <span className="text-lg font-bold">SOLVE</span>
           </div>
           <p className="text-sm text-slate-500">
-            © 2026 CheckinMe Platform. All rights reserved.
+            © 2026 Trainer Platform. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm font-medium text-slate-600">
             <a href="#" className="hover:text-slate-900">

@@ -36,7 +36,6 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
-
 // 4. Export reusable functions for your components to call
 export const apiService = {
 
@@ -61,6 +60,13 @@ export const apiService = {
         return response.data.data;
     },
 
+    // 🚨 ADD THIS NEW FUNCTION HERE 🚨
+    getWeeklyPlans: async () => {
+        const response = await apiClient.get('/weekly-plans');
+        // Handle Laravel's pagination wrapper
+        return response.data.data || response.data;
+    },
+
     // --- Action Plan Endpoints ---
     getWeeklyPlan: async (planId) => {
         const response = await apiClient.get(`/weekly-plans/${planId}`);
@@ -78,5 +84,4 @@ export const apiService = {
     }
 
 };
-
 export default apiClient;
