@@ -120,10 +120,10 @@ export const WeeklyFooter = ({ planData }) => {
 
         <div className="flex justify-end pt-1 print:hidden">
           <Button
-            onClick={handleSubmit(onSubmit)}
+            onClick={handleSubmit(onSubmit)}    
             className="h-6 px-4 text-[10px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm"
           >
-            Save Summary
+            Save summary 
           </Button>
         </div>
       </div>

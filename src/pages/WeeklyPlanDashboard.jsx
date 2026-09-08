@@ -155,15 +155,18 @@ export const WeeklyPlanDashboard = () => {
     setIsExportingWeeklyPng(true);
     try {
       const rawCanvas = await html2canvas(node, {
-        scale: RENDER_SCALE,
+        scale: 5, // Increased from RENDER_SCALE (3) to 5 for ultra-high quality
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         windowWidth: node.scrollWidth,
         windowHeight: node.scrollHeight,
+        // Optional: helps render text more sharply
+        logging: false, 
       });
 
-      const imgData = rawCanvas.toDataURL("image/png");
+      // Added 1.0 parameter to explicitly request maximum quality
+      const imgData = rawCanvas.toDataURL("image/png", 1.0); 
       const link = document.createElement("a");
       link.href = imgData;
       link.download = `Weekly_Action_Plan_${planData?.week_number || "01"}.png`;
