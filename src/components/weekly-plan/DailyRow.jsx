@@ -256,7 +256,7 @@ export const DailyRow = ({ dayData }) => {
           <Textarea
             {...register("comment")}
             wrap="soft"
-            className="h-[90px] min-h-[90px] max-h-[90px] w-full p-1 text-[9px] text-left align-top break-all overflow-y-auto overflow-x-hidden resize-none bg-transparent border-0 border-b border-gray-300 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-blue-500"
+            className="h-[90px] min-h-[90px] max-h-[90px] w-full p-1 text-[7px] text-left align-top break-all overflow-y-auto overflow-x-hidden resize-none bg-transparent border-0 border-b border-gray-300 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-blue-500"
             placeholder="Notes..."
           />
 
