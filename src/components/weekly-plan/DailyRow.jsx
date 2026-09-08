@@ -253,6 +253,7 @@ export const DailyRow = ({ dayData }) => {
       {/* Comment Column */}
       <td className="p-1 text-center align-middle relative w-[320px]">
         <div className="flex flex-col h-full w-full relative group">
+          
           <Textarea
             {...register("comment")}
             wrap="soft"
