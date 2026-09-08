@@ -103,15 +103,6 @@ export const WeeklyFooter = ({ planData }) => {
             className="w-full h-12 print:h-8 text-[11px] p-1 bg-transparent border-0 border-b border-dotted border-gray-500 rounded-none shadow-none focus-visible:ring-0 resize-none overflow-hidden"
           />
         </div>
-
-        <div className="flex justify-end pt-1 print:hidden">
-          <Button
-            onClick={handleSubmit(onSubmit)}    
-            className="h-6 px-4 text-[10px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm"
-          >
-            Save Reflections
-          </Button>
-        </div>
       </div>
     </div>
   );
