@@ -11,12 +11,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+// 👉 Import the new Telegram tools
+import { useTelegramExport } from "../hooks/useTelegramExport";
+import { TelegramConnectModal } from "../components/auth/components/telegram/TelegramConnectModal";
+
 const PAGE_MAX_WIDTH_PX = 3508;
 const PAGE_MAX_HEIGHT_PX = 2480;
 const RENDER_SCALE = 3;
 
 export const WeeklyPlanDashboard = () => {
-  // 1. 👉 NEW STATES ADDED HERE
   const [planData, setPlanData] = useState(null);
   const [history, setHistory] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState("current");
@@ -25,14 +28,22 @@ export const WeeklyPlanDashboard = () => {
   const [isExportingWeeklyPng, setIsExportingWeeklyPng] = useState(false);
   const [isExportingDailyPng, setIsExportingDailyPng] = useState(false);
 
-  const isExportingAny =
-    isExportingPdf || isExportingWeeklyPng || isExportingDailyPng;
-
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const componentRef = useRef(null);
 
-  // 2. 👉 UPDATED USE-EFFECTS FOR HISTORY AND SELECTION
+  // 👉 Initialize the Telegram hook
+  const { 
+    isSendingTelegram, 
+    sendToTelegram, 
+    showConnectModal, 
+    setShowConnectModal 
+  } = useTelegramExport();
+
+  // 👉 Update this to include isSendingTelegram so all buttons disable properly
+  const isExportingAny =
+    isExportingPdf || isExportingWeeklyPng || isExportingDailyPng || isSendingTelegram;
+
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -155,17 +166,15 @@ export const WeeklyPlanDashboard = () => {
     setIsExportingWeeklyPng(true);
     try {
       const rawCanvas = await html2canvas(node, {
-        scale: 5, // Increased from RENDER_SCALE (3) to 5 for ultra-high quality
+        scale: 5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         windowWidth: node.scrollWidth,
         windowHeight: node.scrollHeight,
-        // Optional: helps render text more sharply
         logging: false, 
       });
 
-      // Added 1.0 parameter to explicitly request maximum quality
       const imgData = rawCanvas.toDataURL("image/png", 1.0); 
       const link = document.createElement("a");
       link.href = imgData;
@@ -212,6 +221,12 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
+  // --- 5. SEND TO TELEGRAM ---
+  // 👉 This uses the custom hook to process the capture and handle the API request
+  const handleTelegramClick = () => {
+    sendToTelegram(componentRef, planData, RENDER_SCALE);
+  };
+
   if (!planData) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">
@@ -224,12 +239,22 @@ export const WeeklyPlanDashboard = () => {
   const dynamicWeekNumber =
     currentHistoryIndex !== -1
       ? history.length - currentHistoryIndex
-      : history.length + 1; // If it is a brand new week not in history yet
+      : history.length + 1;
 
   return (
     <div className="min-h-[1000px] print:min-h-0 bg-gray-50 print:bg-white p-5 print:p-0">
+      
+      {/* 👉 Render the Telegram Connect Modal */}
+      <TelegramConnectModal 
+        isOpen={showConnectModal} 
+        onClose={() => setShowConnectModal(false)}
+        onLinked={() => {
+          setShowConnectModal(false);
+          handleTelegramClick(); // Automatically retry sending once linked!
+        }}
+      />
+
       <div className="max-w-[1500px] mx-auto flex justify-end gap-2 mb-3 print:hidden">
-        {/* 3. 👉 NEW HISTORY DROPDOWN ADDED HERE */}
         <div className="flex items-center mr-auto print:hidden">
           <label className="text-xs font-semibold text-gray-700 mr-2">
             View Week:
@@ -241,7 +266,6 @@ export const WeeklyPlanDashboard = () => {
           >
             <option value="current">Current Week (Active)</option>
 
-            {/* 👉 Add 'index' here and use history.length - index to auto-count! */}
             {history.map((plan, index) => (
               <option key={plan.id} value={plan.id}>
                 Week {history.length - index} ({plan.start_date})
@@ -257,22 +281,26 @@ export const WeeklyPlanDashboard = () => {
           disabled={isExportingAny}
           className="h-8 text-xs text-blue-700 border-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:opacity-60"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 6 2 18 2 18 9"></polyline>
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
             <rect x="6" y="14" width="12" height="8"></rect>
           </svg>
           Print Web
+        </Button>
+
+        {/* 👉 Add the Telegram Button here */}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleTelegramClick}
+          disabled={isExportingAny}
+          className="h-8 text-xs bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-1 disabled:opacity-60"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .34z" />
+          </svg>
+          {isSendingTelegram ? "Sending..." : "Send to Telegram"}
         </Button>
 
         <Button
@@ -282,17 +310,7 @@ export const WeeklyPlanDashboard = () => {
           disabled={isExportingAny}
           className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1 disabled:opacity-60"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <circle cx="8.5" cy="8.5" r="1.5"></circle>
             <polyline points="21 15 16 10 5 21"></polyline>
@@ -307,17 +325,7 @@ export const WeeklyPlanDashboard = () => {
           disabled={isExportingAny}
           className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 disabled:opacity-60"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <circle cx="8.5" cy="8.5" r="1.5"></circle>
             <polyline points="21 15 16 10 5 21"></polyline>
@@ -332,17 +340,7 @@ export const WeeklyPlanDashboard = () => {
           disabled={isExportingAny}
           className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 disabled:opacity-60"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -366,7 +364,6 @@ export const WeeklyPlanDashboard = () => {
         style={{ width: "1400px", maxWidth: "100%" }}
       >
         <Card className="mx-auto p-6 bg-white shadow-sm rounded-none border-gray-300 print:shadow-none print:border-none print:p-0 print:break-inside-avoid">
-          {/* 👉 UPDATE THIS LINE to pass the dynamicWeekNumber */}
           <WeeklyHeader
             planData={planData}
             dynamicWeekNumber={dynamicWeekNumber}
