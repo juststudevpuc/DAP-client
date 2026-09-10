@@ -18,6 +18,9 @@ export const useTelegramExport = () => {
 
     setIsSendingTelegram(true);
     try {
+      // Brief pause to stabilize DOM elements on initial render
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       // 1. Configure canvas options based on Daily vs Weekly
       const canvasOptions = {
         scale: scale,
@@ -44,6 +47,10 @@ export const useTelegramExport = () => {
       const blob = await new Promise((resolve) => {
         rawCanvas.toBlob(resolve, "image/png", 1.0);
       });
+
+      if (!blob || blob.size === 0) {
+        throw new Error("Generated image blob is empty.");
+      }
 
       // 3. Prepare form data with dynamic naming
       const formData = new FormData();
@@ -76,6 +83,8 @@ export const useTelegramExport = () => {
         setShowConnectModal(true);
       } else if (error.response?.status === 401) {
         alert("❌ Your session has expired. Please sign out and log back in.");
+      } else if (error.response?.status === 422) {
+        alert("❌ Image validation failed. Please try clicking the button again.");
       } else {
         alert("❌ Failed to send to Telegram. Please try again.");
       }
