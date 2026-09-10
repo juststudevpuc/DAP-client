@@ -6,41 +6,54 @@ export const useTelegramExport = () => {
   const [isSendingTelegram, setIsSendingTelegram] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
 
-  const sendToTelegram = async (componentRef, planData, scale = 3) => {
+  const sendToTelegram = async (componentRef, planData, type = 'weekly', scale = 3) => {
     const node = componentRef.current;
     if (!node) return;
 
-    // 1. Token Safety Check (Prevents 401 Unauthorized errors)
-    // ⚠️ IMPORTANT: If your app uses a different key for the token (like 'access_token'), change it here!
-    const token = localStorage.getItem('token'); 
-    
+    const token = localStorage.getItem('token');
     if (!token) {
-      alert("❌ You are not fully logged in. Please sign out and sign back in to generate a fresh token.");
+      alert("❌ You are not fully logged in. Please sign out and sign back in.");
       return;
     }
 
     setIsSendingTelegram(true);
     try {
-      // 2. Capture the component to a canvas
-      const rawCanvas = await html2canvas(node, {
+      // 1. Configure canvas options based on Daily vs Weekly
+      const canvasOptions = {
         scale: scale,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         windowWidth: node.scrollWidth,
         windowHeight: node.scrollHeight,
-      });
+      };
 
-      // 3. Convert canvas to a File (Blob)
+      // If daily, hide the footer just like your daily PNG export
+      if (type === 'daily') {
+        canvasOptions.onclone = (clonedDoc) => {
+          const footer = clonedDoc.getElementById("weekly-footer-container");
+          if (footer) {
+            footer.style.display = "none";
+          }
+        };
+      }
+
+      const rawCanvas = await html2canvas(node, canvasOptions);
+
+      // 2. Convert canvas to a File (Blob)
       const blob = await new Promise((resolve) => {
         rawCanvas.toBlob(resolve, "image/png", 1.0);
       });
 
-      // 4. Prepare form data
+      // 3. Prepare form data with dynamic naming
       const formData = new FormData();
-      formData.append("image", blob, `Weekly_Plan_${planData?.week_number || "01"}.png`);
+      const fileName = type === 'daily' 
+        ? `Daily_Action_Plan_${planData?.week_number || "01"}.png` 
+        : `Weekly_Action_Plan_${planData?.week_number || "01"}.png`;
+        
+      formData.append("image", blob, fileName);
 
-      // 5. Send to Laravel API
+      // 4. Send to Laravel API
       const response = await axios.post(
         'https://checkinme-api.onrender.com/api/telegram/send-image',
         formData,
@@ -53,21 +66,17 @@ export const useTelegramExport = () => {
       );
 
       if (response.data.success) {
-        alert("✅ Successfully sent to your Telegram!");
+        alert(`✅ Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to your Telegram!`);
       }
 
     } catch (error) {
       console.error("Failed to send to Telegram", error);
       
-      // If backend says user isn't linked (403), open the Modal
       if (error.response?.status === 403 && error.response?.data?.needs_linking) {
         setShowConnectModal(true);
-      } 
-      // Handle the 401 Unauthorized Error specifically
-      else if (error.response?.status === 401) {
+      } else if (error.response?.status === 401) {
         alert("❌ Your session has expired. Please sign out and log back in.");
-      } 
-      else {
+      } else {
         alert("❌ Failed to send to Telegram. Please try again.");
       }
     } finally {

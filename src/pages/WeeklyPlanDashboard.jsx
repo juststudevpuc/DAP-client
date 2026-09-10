@@ -28,6 +28,10 @@ export const WeeklyPlanDashboard = () => {
   const [isExportingWeeklyPng, setIsExportingWeeklyPng] = useState(false);
   const [isExportingDailyPng, setIsExportingDailyPng] = useState(false);
 
+  // 👉 State for the Telegram dropdown menu
+  const [showTelegramMenu, setShowTelegramMenu] = useState(false);
+  const [pendingTelegramType, setPendingTelegramType] = useState('weekly');
+
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const componentRef = useRef(null);
@@ -40,7 +44,6 @@ export const WeeklyPlanDashboard = () => {
     setShowConnectModal 
   } = useTelegramExport();
 
-  // 👉 Update this to include isSendingTelegram so all buttons disable properly
   const isExportingAny =
     isExportingPdf || isExportingWeeklyPng || isExportingDailyPng || isSendingTelegram;
 
@@ -222,9 +225,10 @@ export const WeeklyPlanDashboard = () => {
   };
 
   // --- 5. SEND TO TELEGRAM ---
-  // 👉 This uses the custom hook to process the capture and handle the API request
-  const handleTelegramClick = () => {
-    sendToTelegram(componentRef, planData, RENDER_SCALE);
+  const handleTelegramClick = (type) => {
+    setShowTelegramMenu(false); // Close dropdown
+    setPendingTelegramType(type);
+    sendToTelegram(componentRef, planData, type, RENDER_SCALE);
   };
 
   if (!planData) {
@@ -250,7 +254,7 @@ export const WeeklyPlanDashboard = () => {
         onClose={() => setShowConnectModal(false)}
         onLinked={() => {
           setShowConnectModal(false);
-          handleTelegramClick(); // Automatically retry sending once linked!
+          handleTelegramClick(pendingTelegramType); 
         }}
       />
 
@@ -289,19 +293,44 @@ export const WeeklyPlanDashboard = () => {
           Print Web
         </Button>
 
-        {/* 👉 Add the Telegram Button here */}
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleTelegramClick}
-          disabled={isExportingAny}
-          className="h-8 text-xs bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-1 disabled:opacity-60"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .34z" />
-          </svg>
-          {isSendingTelegram ? "Sending..." : "Send to Telegram"}
-        </Button>
+        {/* 👉 Telegram Dropdown Menu */}
+        <div className="relative">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowTelegramMenu(!showTelegramMenu)}
+            disabled={isExportingAny}
+            className="h-8 text-xs bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-1 disabled:opacity-60"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .34z" />
+            </svg>
+            {isSendingTelegram ? "Sending..." : "Send to Telegram"}
+            
+            {/* Small dropdown chevron */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showTelegramMenu ? 'rotate-180' : ''}`}>
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </Button>
+
+          {/* Dropdown Options */}
+          {showTelegramMenu && (
+            <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
+              <button
+                onClick={() => handleTelegramClick('daily')}
+                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition"
+              >
+                Send Daily Image
+              </button>
+              <button
+                onClick={() => handleTelegramClick('weekly')}
+                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition border-t border-gray-100"
+              >
+                Send Weekly Image
+              </button>
+            </div>
+          )}
+        </div>
 
         <Button
           variant="default"
