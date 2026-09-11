@@ -11,9 +11,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-// 👉 Import the new Telegram tools
+// 👉 Import Telegram and Modal tools
 import { useTelegramExport } from "../hooks/useTelegramExport";
 import { TelegramConnectModal } from "../components/auth/components/telegram/TelegramConnectModal";
+import { ManageWeeksModal } from "../components/weekly-plan/ManageWeeksModal";
 
 const PAGE_MAX_WIDTH_PX = 3508;
 const PAGE_MAX_HEIGHT_PX = 2480;
@@ -28,15 +29,15 @@ export const WeeklyPlanDashboard = () => {
   const [isExportingWeeklyPng, setIsExportingWeeklyPng] = useState(false);
   const [isExportingDailyPng, setIsExportingDailyPng] = useState(false);
 
-  // 👉 State for the Telegram dropdown menu
+  // 👉 Modal states
   const [showTelegramMenu, setShowTelegramMenu] = useState(false);
   const [pendingTelegramType, setPendingTelegramType] = useState('weekly');
+  const [showManageModal, setShowManageModal] = useState(false);
 
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const componentRef = useRef(null);
 
-  // 👉 Initialize the Telegram hook
   const { 
     isSendingTelegram, 
     sendToTelegram, 
@@ -47,16 +48,17 @@ export const WeeklyPlanDashboard = () => {
   const isExportingAny =
     isExportingPdf || isExportingWeeklyPng || isExportingDailyPng || isSendingTelegram;
 
+  const fetchHistoryData = async () => {
+    try {
+      const historyData = await apiService.getWeeklyPlans();
+      setHistory(historyData);
+    } catch (error) {
+      console.error("Failed to load history", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const historyData = await apiService.getWeeklyPlans();
-        setHistory(historyData);
-      } catch (error) {
-        console.error("Failed to load history", error);
-      }
-    };
-    fetchHistory();
+    fetchHistoryData();
   }, []);
 
   useEffect(() => {
@@ -226,7 +228,7 @@ export const WeeklyPlanDashboard = () => {
 
   // --- 5. SEND TO TELEGRAM ---
   const handleTelegramClick = (type) => {
-    setShowTelegramMenu(false); // Close dropdown
+    setShowTelegramMenu(false); 
     setPendingTelegramType(type);
     sendToTelegram(componentRef, planData, type, RENDER_SCALE);
   };
@@ -240,15 +242,14 @@ export const WeeklyPlanDashboard = () => {
   }
 
   const currentHistoryIndex = history.findIndex((p) => p?.id === planData?.id);
-  const dynamicWeekNumber =
-    currentHistoryIndex !== -1
-      ? history.length - currentHistoryIndex
-      : history.length + 1;
+  const dynamicWeekNumber = planData?.week_number || (currentHistoryIndex !== -1
+    ? history.length - currentHistoryIndex
+    : history.length + 1);
 
   return (
     <div className="min-h-[1000px] print:min-h-0 bg-gray-50 print:bg-white p-5 print:p-0">
       
-      {/* 👉 Render the Telegram Connect Modal */}
+      {/* Telegram Connect Modal */}
       <TelegramConnectModal 
         isOpen={showConnectModal} 
         onClose={() => setShowConnectModal(false)}
@@ -258,9 +259,20 @@ export const WeeklyPlanDashboard = () => {
         }}
       />
 
+      {/* Manage / Delete Weeks Modal */}
+      <ManageWeeksModal
+        isOpen={showManageModal}
+        onClose={() => setShowManageModal(false)}
+        history={history}
+        onDeleted={() => {
+          fetchHistoryData();
+          setSelectedPlanId("current");
+        }}
+      />
+
       <div className="max-w-[1500px] mx-auto flex justify-end gap-2 mb-3 print:hidden">
-        <div className="flex items-center mr-auto print:hidden">
-          <label className="text-xs font-semibold text-gray-700 mr-2">
+        <div className="flex items-center mr-auto print:hidden gap-2">
+          <label className="text-xs font-semibold text-gray-700">
             View Week:
           </label>
           <select
@@ -269,13 +281,23 @@ export const WeeklyPlanDashboard = () => {
             className="h-8 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-2 bg-white"
           >
             <option value="current">Current Week (Active)</option>
-
-            {history.map((plan, index) => (
+            {history.map((plan) => (
               <option key={plan.id} value={plan.id}>
-                Week {history.length - index} ({plan.start_date})
+                Week {plan.week_number} ({plan.start_date})
               </option>
             ))}
           </select>
+
+          {/* 👉 Button to open Manage & Delete Modal */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManageModal(true)}
+            disabled={isExportingAny}
+            className="h-8 text-xs text-red-600 border-red-300 hover:bg-red-50 flex items-center gap-1"
+          >
+            🗑️ Manage Weeks
+          </Button>
         </div>
 
         <Button
@@ -293,7 +315,7 @@ export const WeeklyPlanDashboard = () => {
           Print Web
         </Button>
 
-        {/* 👉 Telegram Dropdown Menu */}
+        {/* Telegram Dropdown */}
         <div className="relative">
           <Button
             variant="default"
@@ -307,13 +329,11 @@ export const WeeklyPlanDashboard = () => {
             </svg>
             {isSendingTelegram ? "Sending..." : "Send to Telegram"}
             
-            {/* Small dropdown chevron */}
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showTelegramMenu ? 'rotate-180' : ''}`}>
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </Button>
 
-          {/* Dropdown Options */}
           {showTelegramMenu && (
             <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
               <button

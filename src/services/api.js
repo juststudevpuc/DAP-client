@@ -35,6 +35,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
 // 4. Export reusable functions for your components to call
 export const apiService = {
 
@@ -59,7 +60,6 @@ export const apiService = {
         return response.data.data;
     },
 
-    // 🚨 ADD THIS NEW FUNCTION HERE 🚨
     getWeeklyPlans: async () => {
         const response = await apiClient.get('/weekly-plans');
         // Handle Laravel's pagination wrapper
@@ -80,7 +80,14 @@ export const apiService = {
     updateWeeklyPlan: async (planId, updateData) => {
         const response = await apiClient.patch(`/weekly-plans/${planId}`, updateData);
         return response.data;
+    },
+
+    // 👉 Properly placed inside apiService using apiClient to guarantee token authorization
+    deleteWeeklyPlan: async (id) => {
+        const response = await apiClient.delete(`/weekly-plans/${id}`);
+        return response.data;
     }
 
 };
+
 export default apiClient;
