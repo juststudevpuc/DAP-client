@@ -6,7 +6,7 @@ export const useTelegramExport = () => {
   const [isSendingTelegram, setIsSendingTelegram] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
 
-  const sendToTelegram = async (componentRef, planData, type = 'weekly', scale = 3) => {
+  const sendToTelegram = async (componentRef, planData, type = 'weekly', scale = 2) => {
     const node = componentRef.current;
     if (!node) return;
 
@@ -18,20 +18,32 @@ export const useTelegramExport = () => {
 
     setIsSendingTelegram(true);
     try {
-      // Brief pause to stabilize DOM elements on initial render
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // 1. Ensure all inner images (like logo) are completely loaded before rasterizing
+      const images = Array.from(node.querySelectorAll("img"));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
 
-      // 1. Configure canvas options based on Daily vs Weekly
+      // 2. Stabilization delay for layout settlement
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // 3. Configure canvas (allowTaint must be FALSE to avoid corrupted canvas exports)
       const canvasOptions = {
-        scale: scale,
+        scale: scale, // 2 provides crisp text without ballooning payload past server limits
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: "#ffffff",
+        logging: false,
         windowWidth: node.scrollWidth,
         windowHeight: node.scrollHeight,
       };
 
-      // If daily, hide the footer just like your daily PNG export
       if (type === 'daily') {
         canvasOptions.onclone = (clonedDoc) => {
           const footer = clonedDoc.getElementById("weekly-footer-container");
@@ -43,24 +55,26 @@ export const useTelegramExport = () => {
 
       const rawCanvas = await html2canvas(node, canvasOptions);
 
-      // 2. Convert canvas to a File (Blob)
+      // 4. Convert to Blob with safety validation
       const blob = await new Promise((resolve) => {
-        rawCanvas.toBlob(resolve, "image/png", 1.0);
+        rawCanvas.toBlob(resolve, "image/png", 0.92);
       });
 
       if (!blob || blob.size === 0) {
         throw new Error("Generated image blob is empty.");
       }
 
-      // 3. Prepare form data with dynamic naming
+      // 5. Prepare form data
       const formData = new FormData();
       const fileName = type === 'daily' 
-        ? `Daily_Action_Plan_${planData?.week_number || "01"}.png` 
-        : `Weekly_Action_Plan_${planData?.week_number || "01"}.png`;
+        ? `Daily_Action_Plan_Week_${planData?.week_number || "1"}.png` 
+        : `Weekly_Action_Plan_Week_${planData?.week_number || "1"}.png`;
         
       formData.append("image", blob, fileName);
+      formData.append("type", type);
+      formData.append("week_number", planData?.week_number || 1);
 
-      // 4. Send to Laravel API
+      // 6. Send to Laravel API
       const response = await axios.post(
         'https://checkinme-api.onrender.com/api/telegram/send-image',
         formData,
@@ -72,19 +86,25 @@ export const useTelegramExport = () => {
         }
       );
 
-      if (response.data.success) {
+      if (response.data?.success || response.status === 200) {
         alert(`✅ Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to your Telegram!`);
       }
 
     } catch (error) {
       console.error("Failed to send to Telegram", error);
       
+      // Print the exact Laravel validation errors in DevTools console
+      if (error.response?.data?.errors) {
+        console.error("Backend Validation Details:", error.response.data.errors);
+      }
+
       if (error.response?.status === 403 && error.response?.data?.needs_linking) {
         setShowConnectModal(true);
       } else if (error.response?.status === 401) {
         alert("❌ Your session has expired. Please sign out and log back in.");
       } else if (error.response?.status === 422) {
-        alert("❌ Image validation failed. Please try clicking the button again.");
+        const serverMsg = error.response?.data?.message || "Image validation failed.";
+        alert(`❌ ${serverMsg}`);
       } else {
         alert("❌ Failed to send to Telegram. Please try again.");
       }
