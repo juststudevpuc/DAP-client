@@ -1,10 +1,9 @@
 import { useForm } from "react-hook-form";
-import { apiService } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
 
-export const WeeklyFooter = ({ planData }) => {
+export const WeeklyFooter = ({ planData, onComplete, currentWeekNumber }) => {
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       what_worked: planData?.what_worked || "",
@@ -27,8 +26,14 @@ export const WeeklyFooter = ({ planData }) => {
 
   const onSubmit = async (formData) => {
     try {
-      await apiService.updateWeeklyPlan(planData.id, formData);
-      alert("Weekly reflections saved successfully!");
+      const payload = {
+        ...formData,
+        week_number: currentWeekNumber || planData?.week_number || 1
+      };
+
+      if (onComplete) {
+        await onComplete(payload);
+      }
     } catch (error) {
       console.error("Failed to save reflections:", error);
       alert("Error saving reflections.");
@@ -47,37 +52,28 @@ export const WeeklyFooter = ({ planData }) => {
           <div className="flex justify-between items-end">
             <span>ប្រកាស Training/ បានបញ្ចប់</span>
             <div className="border-b border-dotted border-gray-500 w-24 text-center pb-1">
-              {/* 👉 Directly reading the backend calculations! */}
-              {planData?.last_week_training_qty || 0}{" "}
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{" "}
-              {planData?.last_week_training_pct || 0}%
+              {planData?.last_week_training_qty || 0} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {planData?.last_week_training_pct || 0}%
             </div>
           </div>
 
           <div className="flex justify-between items-end">
             <span>ប្រកាស Onboarding/ បានបញ្ចប់</span>
             <div className="border-b border-dotted border-gray-500 w-24 text-center pb-1">
-              {/* 👉 Directly reading the backend calculations! */}
-              {planData?.last_week_onboarding_qty || 0}{" "}
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{" "}
-              {planData?.last_week_onboarding_pct || 0}%
+              {planData?.last_week_onboarding_qty || 0} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {planData?.last_week_onboarding_pct || 0}%
             </div>
           </div>
 
           <div className="flex justify-between items-end">
             <span>ប្រកាស Graduated/ បានបញ្ចប់</span>
             <div className="border-b border-dotted border-gray-500 w-24 text-center pb-1">
-              {/* 👉 Directly reading the backend calculations! */}
-              {planData?.last_week_graduated_qty || 0}{" "}
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{" "}
-              {planData?.last_week_graduated_pct || 0}%
+              {planData?.last_week_graduated_qty || 0} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {planData?.last_week_graduated_pct || 0}%
             </div>
           </div>
         </div>
       </div>
 
       {/* Right Side: Reflections */}
-      <div className="flex flex-col gap-4 print:gap-2">
+      <div className="flex flex-col gap-4 print:gap-2 pt-8 print:pt-4">
         <div className="flex flex-col gap-1">
           <label className="text-[12px] font-semibold text-gray-800">
             What worked/អ្វីដែលអាចទៅរួច?
@@ -120,10 +116,11 @@ export const WeeklyFooter = ({ planData }) => {
 
         <div className="flex justify-end pt-1 print:hidden">
           <Button
+            type="button"
             onClick={handleSubmit(onSubmit)}    
             className="h-6 px-4 text-[10px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm"
           >
-            Save summary 
+            Save summary
           </Button>
         </div>
       </div>

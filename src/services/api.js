@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Token is invalid or expired, clear it out!
+            // Token is invalid or expired, clear it out
             useAuthStore.getState().logout();
         }
         return Promise.reject(error);
@@ -55,21 +55,25 @@ export const apiService = {
         return response.data;
     },
 
+    // --- Weekly Plan Endpoints ---
     getCurrentWeeklyPlan: async () => {
         const response = await apiClient.get('/weekly-plans/current');
         return response.data.data;
     },
 
-    getWeeklyPlans: async () => {
-        const response = await apiClient.get('/weekly-plans');
-        // Handle Laravel's pagination wrapper
+    getWeeklyPlans: async (params) => {
+        const response = await apiClient.get('/weekly-plans', { params });
         return response.data.data || response.data;
     },
 
-    // --- Action Plan Endpoints ---
     getWeeklyPlan: async (planId) => {
         const response = await apiClient.get(`/weekly-plans/${planId}`);
         return response.data.data;
+    },
+
+    createWeeklyPlan: async (data) => {
+        const response = await apiClient.post('/weekly-plans', data);
+        return response.data.data || response.data;
     },
 
     updateDailyMetric: async (metricId, updateData) => {
@@ -82,9 +86,13 @@ export const apiService = {
         return response.data;
     },
 
-    // 👉 Properly placed inside apiService using apiClient to guarantee token authorization
     deleteWeeklyPlan: async (id) => {
         const response = await apiClient.delete(`/weekly-plans/${id}`);
+        return response.data;
+    },
+
+    completeWeeklyPlan: async (planId, summaryData) => {
+        const response = await apiClient.post(`/weekly-plans/${planId}/complete`, summaryData);
         return response.data;
     }
 

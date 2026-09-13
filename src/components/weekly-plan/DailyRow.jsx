@@ -1,36 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { apiService } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-// 1. Updated Field: Now a 3x4 Numpad with 2-digit limit and Delete!
+// 1. Updated Field: 3x4 Numpad with 2-digit limit and Delete
 const Field = ({ label, name, register, watch, setValue }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // 'watch' reads the current value dynamically from react-hook-form
   const currentValue = watch(name);
 
-  // LOGIC 1: Combine numbers together, limit to 2 digits max
+  // Combine numbers together, limit to 2 digits max
   const handleDigitClick = (digit) => {
     const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
-    
-    // Stop adding if it's already 2 digits!
     if (prevStr.length >= 2) return;
 
     const newNumber = Number(prevStr + digit);
     setValue(name, newNumber, { shouldDirty: true });
   };
 
-  // LOGIC 2: Delete the last number (Backspace)
+  // Delete the last number (Backspace)
   const handleDelete = () => {
     const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
-    
     if (prevStr.length <= 1) {
-      // If it's 1 digit (or empty), just reset to 0
       setValue(name, 0, { shouldDirty: true });
     } else {
-      // Slice off the last character
       const newNumber = Number(prevStr.slice(0, -1));
       setValue(name, newNumber, { shouldDirty: true });
     }
@@ -40,10 +34,8 @@ const Field = ({ label, name, register, watch, setValue }) => {
     <div className="flex justify-between items-center text-[10px] my-1 relative">
       <span className="text-black font-medium truncate mr-2">{label}:</span>
 
-      {/* Hidden input keeps react-hook-form working perfectly in the background */}
       <input type="hidden" {...register(name)} />
 
-      {/* Trigger: Looks exactly like your minimal printed line */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="h-3 w-6 px-0 py-0 text-center text-[8px] font-bold bg-transparent border-0 border-b border-gray-300 cursor-pointer flex items-center justify-center hover:border-blue-500 transition-colors"
@@ -51,21 +43,15 @@ const Field = ({ label, name, register, watch, setValue }) => {
         {currentValue !== undefined ? currentValue : 0}
       </div>
 
-      {/* Numpad Popover */}
       {isOpen && (
         <>
-          {/* Invisible overlay: clicking anywhere outside closes the grid */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
 
           <div className="absolute right-0 top-4 z-50 bg-white border border-gray-200 shadow-xl p-1.5 rounded-md print:hidden">
-            
-            {/* Tailwind's CSS Grid: 3 columns for a standard Numpad */}
             <div className="grid grid-cols-3 gap-1 w-[90px]">
-              
-              {/* Digits 1-9 */}
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                 <div
                   key={num}
@@ -76,7 +62,6 @@ const Field = ({ label, name, register, watch, setValue }) => {
                 </div>
               ))}
 
-              {/* Bottom Row: Delete, 0, OK */}
               <div
                 onClick={handleDelete}
                 className="flex items-center justify-center text-[9px] h-6 w-6 bg-red-50 hover:bg-red-500 hover:text-white text-red-600 cursor-pointer rounded-sm transition-colors border border-red-100 font-medium select-none"
@@ -97,7 +82,6 @@ const Field = ({ label, name, register, watch, setValue }) => {
               >
                 OK
               </div>
-
             </div>
           </div>
         </>
@@ -107,49 +91,73 @@ const Field = ({ label, name, register, watch, setValue }) => {
 };
 
 export const DailyRow = ({ dayData }) => {
-  // 2. Added 'watch' and 'setValue' to the destructuring
   const {
     register,
     handleSubmit,
-    formState: { isDirty },
+    formState: { isDirty, isSubmitting },
     reset,
     watch,
     setValue,
   } = useForm({
     defaultValues: {
-      train_expected: dayData.train_expected,
-      train_completed: dayData.train_completed,
-      train_cancel_delay: dayData.train_cancel_delay,
-      onboard_company_info: dayData.onboard_company_info,
-      onboard_system_analysis: dayData.onboard_system_analysis,
-      onboard_configure_hr: dayData.onboard_configure_hr,
-      onboard_provide_lesson: dayData.onboard_provide_lesson,
-      onboard_success: dayData.onboard_success,
-      grad_certificate: dayData.grad_certificate,
-      grad_hr_policy: dayData.grad_hr_policy,
-      grad_book: dayData.grad_book,
-      comment: dayData.comment || "",
+      train_expected: dayData?.train_expected ?? 0,
+      train_completed: dayData?.train_completed ?? 0,
+      train_cancel_delay: dayData?.train_cancel_delay ?? 0,
+      onboard_company_info: dayData?.onboard_company_info ?? 0,
+      onboard_system_analysis: dayData?.onboard_system_analysis ?? 0,
+      onboard_configure_hr: dayData?.onboard_configure_hr ?? 0,
+      onboard_provide_lesson: dayData?.onboard_provide_lesson ?? 0,
+      onboard_success: dayData?.onboard_success ?? 0,
+      grad_certificate: dayData?.grad_certificate ?? 0,
+      grad_hr_policy: dayData?.grad_hr_policy ?? 0,
+      grad_book: dayData?.grad_book ?? 0,
+      comment: dayData?.comment || "",
     },
   });
 
+  // Re-sync form state when changing selected week
+  useEffect(() => {
+    if (dayData) {
+      reset({
+        train_expected: dayData.train_expected ?? 0,
+        train_completed: dayData.train_completed ?? 0,
+        train_cancel_delay: dayData.train_cancel_delay ?? 0,
+        onboard_company_info: dayData.onboard_company_info ?? 0,
+        onboard_system_analysis: dayData.onboard_system_analysis ?? 0,
+        onboard_configure_hr: dayData.onboard_configure_hr ?? 0,
+        onboard_provide_lesson: dayData.onboard_provide_lesson ?? 0,
+        onboard_success: dayData.onboard_success ?? 0,
+        grad_certificate: dayData.grad_certificate ?? 0,
+        grad_hr_policy: dayData.grad_hr_policy ?? 0,
+        grad_book: dayData.grad_book ?? 0,
+        comment: dayData.comment || "",
+      });
+    }
+  }, [dayData, reset]);
+
   const onSubmit = async (formData) => {
+    // Guard against undefined ID calls
+    if (!dayData?.id || dayData.id === "undefined") {
+      alert("⚠️ This week is not initialized in the database yet. Click 'Save Summary' at the bottom first to generate IDs.");
+      return;
+    }
+
     const cleanedData = {};
     for (const key in formData) {
       if (key === "comment") {
-        cleanedData[key] = formData[key];
+        cleanedData[key] = formData[key] ?? "";
       } else {
         cleanedData[key] = formData[key] === "" ? 0 : Number(formData[key]);
       }
     }
+
     try {
       await apiService.updateDailyMetric(dayData.id, cleanedData);
-      alert(`${dayData.day_name} saved successfully!`);
-
-      // 3. Reset the form with the new data. This turns 'isDirty' back to false and hides the button!
+      alert(`✅ ${dayData.day_name} saved successfully!`);
       reset(formData);
     } catch (error) {
       console.error(`Failed to save:`, error);
-      alert("Error saving data.");
+      alert("❌ Error saving daily metric data.");
     }
   };
 
@@ -161,8 +169,7 @@ export const DailyRow = ({ dayData }) => {
       </td>
 
       {/* Training Column */}
-      <td className="px-1 border-r border-gray-800  w-[18px] text-blue-600 ">
-        {/* Passed watch and setValue to every field */}
+      <td className="px-1 border-r border-gray-800 w-[18px] text-blue-600">
         <Field
           label="Expected Training"
           name="train_expected"
@@ -187,7 +194,7 @@ export const DailyRow = ({ dayData }) => {
       </td>
 
       {/* Onboarding Column */}
-      <td className="px-1  border-r border-gray-800 align-top w-[280px] text-blue-500">
+      <td className="px-1 border-r border-gray-800 align-top w-[280px] text-blue-500">
         <Field
           label="Company's Information"
           name="onboard_company_info"
@@ -226,7 +233,7 @@ export const DailyRow = ({ dayData }) => {
       </td>
 
       {/* Graduated Column */}
-      <td className="px-1  border-r border-gray-800 w-[220px] text-blue-500">
+      <td className="px-1 border-r border-gray-800 w-[220px] text-blue-500">
         <Field
           label="Provided Certificate"
           name="grad_certificate"
@@ -253,7 +260,6 @@ export const DailyRow = ({ dayData }) => {
       {/* Comment Column */}
       <td className="p-1 text-center align-middle relative w-[320px]">
         <div className="flex flex-col h-full w-full relative group">
-          
           <Textarea
             {...register("comment")}
             wrap="soft"
@@ -263,6 +269,8 @@ export const DailyRow = ({ dayData }) => {
 
           {isDirty && (
             <Button
+              type="button"
+              disabled={isSubmitting}
               onClick={handleSubmit(onSubmit)}
               className="absolute bottom-2 right-2 h-6 px-3 text-[10px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-md hover:shadow-lg transition-all print:hidden z-10 flex items-center gap-1"
             >
@@ -281,7 +289,7 @@ export const DailyRow = ({ dayData }) => {
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
                 <polyline points="7 3 7 8 15 8"></polyline>
               </svg>
-              Save
+              {isSubmitting ? "Saving..." : "Save"}
             </Button>
           )}
         </div>

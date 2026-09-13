@@ -11,7 +11,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-// 👉 Import Telegram and Modal tools
 import { useTelegramExport } from "../hooks/useTelegramExport";
 import { TelegramConnectModal } from "../components/auth/components/telegram/TelegramConnectModal";
 import { ManageWeeksModal } from "../components/weekly-plan/ManageWeeksModal";
@@ -23,15 +22,44 @@ const RENDER_SCALE = 3;
 export const WeeklyPlanDashboard = () => {
   const [planData, setPlanData] = useState(null);
   const [history, setHistory] = useState([]);
-  const [selectedPlanId, setSelectedPlanId] = useState("current");
+  const [isLoadingWeek, setIsLoadingWeek] = useState(false);
+
+  // Initialize from localStorage so refresh preserves user position
+  const currentYear = new Date().getFullYear().toString();
+  const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, "0");
+
+  const [filterYear, setFilterYear] = useState(() => {
+    return localStorage.getItem("checkinme_filter_year") || currentYear;
+  });
+
+  const [filterMonth, setFilterMonth] = useState(() => {
+    return localStorage.getItem("checkinme_filter_month") || currentMonth;
+  });
+
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const savedWeek = localStorage.getItem("checkinme_selected_week");
+    return savedWeek ? Number(savedWeek) : 1;
+  });
+
+  // Sync choices to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem("checkinme_filter_year", filterYear);
+  }, [filterYear]);
+
+  useEffect(() => {
+    localStorage.setItem("checkinme_filter_month", filterMonth);
+  }, [filterMonth]);
+
+  useEffect(() => {
+    localStorage.setItem("checkinme_selected_week", String(selectedWeek));
+  }, [selectedWeek]);
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingWeeklyPng, setIsExportingWeeklyPng] = useState(false);
   const [isExportingDailyPng, setIsExportingDailyPng] = useState(false);
 
-  // 👉 Modal states
   const [showTelegramMenu, setShowTelegramMenu] = useState(false);
-  const [pendingTelegramType, setPendingTelegramType] = useState('weekly');
+  const [pendingTelegramType, setPendingTelegramType] = useState("weekly");
   const [showManageModal, setShowManageModal] = useState(false);
 
   const navigate = useNavigate();
@@ -48,10 +76,14 @@ export const WeeklyPlanDashboard = () => {
   const isExportingAny =
     isExportingPdf || isExportingWeeklyPng || isExportingDailyPng || isSendingTelegram;
 
+  // Load all plans for the Manage Weeks modal
   const fetchHistoryData = async () => {
     try {
-      const historyData = await apiService.getWeeklyPlans();
-      setHistory(historyData);
+      const response = await apiService.getWeeklyPlans();
+      const historyArray = Array.isArray(response) 
+        ? response 
+        : (response?.data || response?.items || []);
+      setHistory(historyArray);
     } catch (error) {
       console.error("Failed to load history", error);
     }
@@ -61,22 +93,67 @@ export const WeeklyPlanDashboard = () => {
     fetchHistoryData();
   }, []);
 
-  useEffect(() => {
-    const loadPlanData = async () => {
-      try {
-        let data;
-        if (selectedPlanId === "current") {
-          data = await apiService.getCurrentWeeklyPlan();
-        } else {
-          data = await apiService.getWeeklyPlan(selectedPlanId);
-        }
-        setPlanData(data);
-      } catch (error) {
-        console.error("Failed to load plan data", error);
+  // Fetch or initialize the specific Year, Month, and Week (1-4)
+  const loadWeekData = async (year, month, week) => {
+    setIsLoadingWeek(true);
+    try {
+      const response = await apiService.getWeeklyPlans({
+        year,
+        month,
+        week,
+      });
+
+      const list = Array.isArray(response) 
+        ? response 
+        : (response?.data || response?.items || []);
+
+      if (list.length > 0) {
+        setPlanData(list[0]);
+      } else {
+        // Calculate date anchor for target week slot
+        const startDay = (week - 1) * 7 + 1;
+        const formattedStartDate = `${year}-${month}-${String(startDay).padStart(2, "0")}`;
+
+        // Auto-create week in database so day metrics receive permanent IDs immediately
+        const created = await apiService.createWeeklyPlan({
+          week_number: Number(week),
+          start_date: formattedStartDate,
+        });
+
+        const newPlan = created?.data || created;
+        setPlanData(newPlan);
+        await fetchHistoryData();
       }
-    };
-    loadPlanData();
-  }, [selectedPlanId]);
+    } catch (error) {
+      console.error("Failed to load or initialize week data", error);
+    } finally {
+      setIsLoadingWeek(false);
+    }
+  };
+
+  useEffect(() => {
+    loadWeekData(filterYear, filterMonth, selectedWeek);
+  }, [filterYear, filterMonth, selectedWeek]);
+
+  // Reset to default system time and Week 1
+  const handleResetToDefault = () => {
+    const defaultYear = new Date().getFullYear().toString();
+    const defaultMonth = (new Date().getMonth() + 1).toString().padStart(2, "0");
+    const defaultWeek = 1;
+
+    // Clear saved selections from localStorage
+    localStorage.removeItem("checkinme_filter_year");
+    localStorage.removeItem("checkinme_filter_month");
+    localStorage.removeItem("checkinme_selected_week");
+
+    // Reset component states
+    setFilterYear(defaultYear);
+    setFilterMonth(defaultMonth);
+    setSelectedWeek(defaultWeek);
+
+    // Immediately fetch default week
+    loadWeekData(defaultYear, defaultMonth, defaultWeek);
+  };
 
   const handleLogout = async () => {
     try {
@@ -89,11 +166,37 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
+  // --- SAVE / UPDATE HANDLER ---
+  const handleSaveWeek = async (summaryPayload) => {
+    if (!planData?.id) {
+      alert("⚠️ Plan is still initializing. Please wait a second and try again.");
+      return;
+    }
+
+    try {
+      const payloadToSend = {
+        ...summaryPayload,
+        week_number: Number(selectedWeek),
+        start_date: planData?.start_date,
+        end_date: planData?.end_date,
+      };
+
+      await apiService.updateWeeklyPlan(planData.id, payloadToSend);
+
+      alert(`✅ Week ${selectedWeek} saved to database!`);
+      await fetchHistoryData();
+      await loadWeekData(filterYear, filterMonth, selectedWeek);
+    } catch (error) {
+      console.error("Failed to save week", error);
+      alert("❌ Failed to save. Check browser network tab for validation errors.");
+    }
+  };
+
   // --- 1. NATIVE BROWSER PRINT HANDLER ---
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
     content: () => componentRef.current,
-    documentTitle: `Weekly_Action_Plan_${planData?.week_number || "01"}`,
+    documentTitle: `Weekly_Action_Plan_Week_${selectedWeek}`,
     pageStyle: `
       @page {
         size: A4 landscape;
@@ -128,7 +231,7 @@ export const WeeklyPlanDashboard = () => {
       const fitRatio = Math.min(
         PAGE_MAX_WIDTH_PX / rawCanvas.width,
         PAGE_MAX_HEIGHT_PX / rawCanvas.height,
-        1,
+        1
       );
 
       const drawWidth = Math.round(rawCanvas.width * fitRatio);
@@ -151,10 +254,10 @@ export const WeeklyPlanDashboard = () => {
         (PAGE_MAX_WIDTH_PX - drawWidth) / 2,
         (PAGE_MAX_HEIGHT_PX - drawHeight) / 2,
         drawWidth,
-        drawHeight,
+        drawHeight
       );
 
-      pdf.save(`Weekly_Action_Plan_${planData?.week_number || "01"}.pdf`);
+      pdf.save(`Weekly_Action_Plan_Week_${selectedWeek}.pdf`);
     } catch (error) {
       console.error("Failed to export PDF", error);
       alert("Failed to generate PDF. Please try again.");
@@ -177,13 +280,13 @@ export const WeeklyPlanDashboard = () => {
         backgroundColor: "#ffffff",
         windowWidth: node.scrollWidth,
         windowHeight: node.scrollHeight,
-        logging: false, 
+        logging: false,
       });
 
-      const imgData = rawCanvas.toDataURL("image/png", 1.0); 
+      const imgData = rawCanvas.toDataURL("image/png", 1.0);
       const link = document.createElement("a");
       link.href = imgData;
-      link.download = `Weekly_Action_Plan_${planData?.week_number || "01"}.png`;
+      link.download = `Weekly_Action_Plan_Week_${selectedWeek}.png`;
       link.click();
     } catch (error) {
       console.error("Failed to export PNG", error);
@@ -216,7 +319,7 @@ export const WeeklyPlanDashboard = () => {
       const imgData = rawCanvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = imgData;
-      link.download = `Daily_Action_Plan_${planData?.week_number || "01"}.png`;
+      link.download = `Daily_Action_Plan_Week_${selectedWeek}.png`;
       link.click();
     } catch (error) {
       console.error("Failed to export Daily PNG", error);
@@ -228,12 +331,12 @@ export const WeeklyPlanDashboard = () => {
 
   // --- 5. SEND TO TELEGRAM ---
   const handleTelegramClick = (type) => {
-    setShowTelegramMenu(false); 
+    setShowTelegramMenu(false);
     setPendingTelegramType(type);
     sendToTelegram(componentRef, planData, type, RENDER_SCALE);
   };
 
-  if (!planData) {
+  if (!planData || isLoadingWeek) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">
         Loading CheckinMe Dashboard...
@@ -241,21 +344,15 @@ export const WeeklyPlanDashboard = () => {
     );
   }
 
-  const currentHistoryIndex = history.findIndex((p) => p?.id === planData?.id);
-  const dynamicWeekNumber = planData?.week_number || (currentHistoryIndex !== -1
-    ? history.length - currentHistoryIndex
-    : history.length + 1);
-
   return (
     <div className="min-h-[1000px] print:min-h-0 bg-gray-50 print:bg-white p-5 print:p-0">
-      
       {/* Telegram Connect Modal */}
-      <TelegramConnectModal 
-        isOpen={showConnectModal} 
+      <TelegramConnectModal
+        isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}
         onLinked={() => {
           setShowConnectModal(false);
-          handleTelegramClick(pendingTelegramType); 
+          handleTelegramClick(pendingTelegramType);
         }}
       />
 
@@ -266,34 +363,79 @@ export const WeeklyPlanDashboard = () => {
         history={history}
         onDeleted={() => {
           fetchHistoryData();
-          setSelectedPlanId("current");
+          loadWeekData(filterYear, filterMonth, selectedWeek);
         }}
       />
 
-      <div className="max-w-[1500px] mx-auto flex justify-end gap-2 mb-3 print:hidden">
-        <div className="flex items-center mr-auto print:hidden gap-2">
-          <label className="text-xs font-semibold text-gray-700">
-            View Week:
-          </label>
+      <div className="max-w-[1500px] mx-auto flex flex-wrap justify-end gap-2 mb-3 print:hidden items-center">
+        {/* Filters: Year, Month, Fixed 4-Week Selector, Filter Action, and Reset Button */}
+        <div className="flex items-center mr-auto gap-2">
+          <label className="text-xs font-semibold text-gray-700">Filter Year:</label>
           <select
-            value={selectedPlanId}
-            onChange={(e) => setSelectedPlanId(e.target.value)}
-            className="h-8 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-2 bg-white"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+            className="h-8 text-xs border border-gray-300 rounded-md px-2 bg-white"
           >
-            <option value="current">Current Week (Active)</option>
-            {history.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                Week {plan.week_number} ({plan.start_date})
-              </option>
-            ))}
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
           </select>
 
-          {/* 👉 Button to open Manage & Delete Modal */}
+          <label className="text-xs font-semibold text-gray-700">Month:</label>
+          <select
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+            className="h-8 text-xs border border-gray-300 rounded-md px-2 bg-white"
+          >
+            <option value="01">01 - January</option>
+            <option value="02">02 - February</option>
+            <option value="03">03 - March</option>
+            <option value="04">04 - April</option>
+            <option value="05">05 - May</option>
+            <option value="06">06 - June</option>
+            <option value="07">07 - July</option>
+            <option value="08">08 - August</option>
+            <option value="09">09 - September</option>
+            <option value="10">10 - October</option>
+            <option value="11">11 - November</option>
+            <option value="12">12 - December</option>
+          </select>
+
+          <label className="text-xs font-semibold text-gray-700 ml-2">View Week:</label>
+          <select
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+            className="h-8 text-xs border border-gray-300 rounded-md shadow-sm px-2 bg-white font-medium"
+          >
+            <option value={1}>Week 1</option>
+            <option value={2}>Week 2</option>
+            <option value={3}>Week 3</option>
+            <option value={4}>Week 4</option>
+          </select>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => loadWeekData(filterYear, filterMonth, selectedWeek)}
+            className="h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white ml-1"
+          >
+            🔍 Filter
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetToDefault}
+            title="Reset filters and return to current month Week 1"
+            className="h-8 text-xs border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+          >
+            🔄 Refresh
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowManageModal(true)}
-            disabled={isExportingAny}
             className="h-8 text-xs text-red-600 border-red-300 hover:bg-red-50 flex items-center gap-1"
           >
             🗑️ Manage Weeks
@@ -305,13 +447,8 @@ export const WeeklyPlanDashboard = () => {
           size="sm"
           onClick={handlePrint}
           disabled={isExportingAny}
-          className="h-8 text-xs text-blue-700 border-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:opacity-60"
+          className="h-8 text-xs text-blue-700 border-blue-600 hover:bg-blue-50 flex items-center gap-1"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
           Print Web
         </Button>
 
@@ -322,29 +459,22 @@ export const WeeklyPlanDashboard = () => {
             size="sm"
             onClick={() => setShowTelegramMenu(!showTelegramMenu)}
             disabled={isExportingAny}
-            className="h-8 text-xs bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-1 disabled:opacity-60"
+            className="h-8 text-xs bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-1"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .34z" />
-            </svg>
             {isSendingTelegram ? "Sending..." : "Send to Telegram"}
-            
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showTelegramMenu ? 'rotate-180' : ''}`}>
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
           </Button>
 
           {showTelegramMenu && (
             <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
               <button
-                onClick={() => handleTelegramClick('daily')}
-                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition"
+                onClick={() => handleTelegramClick("daily")}
+                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 transition"
               >
                 Send Daily Image
               </button>
               <button
-                onClick={() => handleTelegramClick('weekly')}
-                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition border-t border-gray-100"
+                onClick={() => handleTelegramClick("weekly")}
+                className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 transition border-t border-gray-100"
               >
                 Send Weekly Image
               </button>
@@ -357,13 +487,8 @@ export const WeeklyPlanDashboard = () => {
           size="sm"
           onClick={handleExportDailyPng}
           disabled={isExportingAny}
-          className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1 disabled:opacity-60"
+          className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
           {isExportingDailyPng ? "Generating..." : "Daily Image"}
         </Button>
 
@@ -372,13 +497,8 @@ export const WeeklyPlanDashboard = () => {
           size="sm"
           onClick={handleExportWeeklyPng}
           disabled={isExportingAny}
-          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 disabled:opacity-60"
+          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
           {isExportingWeeklyPng ? "Generating..." : "Weekly Image"}
         </Button>
 
@@ -387,13 +507,8 @@ export const WeeklyPlanDashboard = () => {
           size="sm"
           onClick={handleExportPdf}
           disabled={isExportingAny}
-          className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 disabled:opacity-60"
+          className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
           {isExportingPdf ? "Generating..." : "Download PDF"}
         </Button>
 
@@ -415,12 +530,16 @@ export const WeeklyPlanDashboard = () => {
         <Card className="mx-auto p-6 bg-white shadow-sm rounded-none border-gray-300 print:shadow-none print:border-none print:p-0 print:break-inside-avoid">
           <WeeklyHeader
             planData={planData}
-            dynamicWeekNumber={dynamicWeekNumber}
+            currentWeekNumber={selectedWeek}
           />
           <ActionPlanGrid dailyMetrics={planData.daily_metrics} />
 
           <div id="weekly-footer-container">
-            <WeeklyFooter planData={planData} />
+            <WeeklyFooter 
+              planData={planData} 
+              onComplete={handleSaveWeek} 
+              currentWeekNumber={selectedWeek}
+            />
           </div>
         </Card>
       </div>

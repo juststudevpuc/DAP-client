@@ -16,8 +16,11 @@ export const ActionPlanGrid = ({ dailyMetrics }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {dailyMetrics.map((dayData) => (
-                        <DailyRow key={dayData.id} dayData={dayData} />
+                    {dailyMetrics.map((dayData, index) => (
+                        <DailyRow 
+                            key={dayData.id ?? `metric-${dayData.day_name || index}`} 
+                            dayData={dayData} 
+                        />
                     ))}
                 </tbody>
             </table>

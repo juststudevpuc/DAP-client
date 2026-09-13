@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import useAuthStore from "../../store/useAuthStore";
 
-export const WeeklyHeader = ({ planData, dynamicWeekNumber }) => {
+export const WeeklyHeader = ({ planData, currentWeekNumber }) => {
   const user = useAuthStore((state) => state.user);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [weekNumber, setWeekNumber] = useState("");
 
   useEffect(() => {
     if (planData) {
@@ -18,21 +17,20 @@ export const WeeklyHeader = ({ planData, dynamicWeekNumber }) => {
 
       setStartDate(formatForInput(planData.start_date));
       setEndDate(formatForInput(planData.end_date));
-
-      // setWeekNumber(planData.week_number || "1");
-      setWeekNumber(dynamicWeekNumber || planData.week_number || "1");
     }
-  }, [planData, dynamicWeekNumber]);
+  }, [planData]);
 
   const formatDisplayDate = (isoString) => {
     if (!isoString) return ".... / .... / ....";
-    const [year, month, day] = isoString.split("-");
+    const parts = isoString.split("-");
+    if (parts.length < 3) return isoString;
+    const [year, month, day] = parts;
     return `${day} / ${month} / ${year}`;
   };
 
   return (
-    <div className="">
-      <div className="flex items-center justify-center mb- relative">
+    <div>
+      <div className="flex items-center justify-center relative">
         <div className="absolute left-0 text-blue-600 font-bold text-xl flex items-center gap-2">
           <img
             src="/checkinme-logo.jpg"
@@ -58,7 +56,7 @@ export const WeeklyHeader = ({ planData, dynamicWeekNumber }) => {
             Name/ ឈ្មោះ: {user?.name || "Loading..."}
           </div>
 
-          {/* EDITABLE DATES WITH ICONS */}
+          {/* DATES WITH CALENDAR PICKER */}
           <div className="flex items-center justify-center gap-2 whitespace-nowrap">
             <span>Date:</span>
 
@@ -125,38 +123,22 @@ export const WeeklyHeader = ({ planData, dynamicWeekNumber }) => {
             </div>
           </div>
 
-          {/* EDITABLE WEEK NUMBER (PERFECT ALIGNMENT) */}
-          <div className="flex items-center justify-end gap-1 group">
+          {/* READ-ONLY WEEK NUMBER */}
+          <div className="flex items-center justify-end gap-1">
             <span>Week/ សប្តាហ៍:</span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center">
               <input
-                type="text"
-                value={weekNumber}
-                onChange={(e) => setWeekNumber(e.target.value)}
-                style={{ textAlign: "center", width: "10px", fontSize: "15px" }}
-                className="bg-transparent border-0 border-b border-gray-400 outline-none text-[12px] font-medium p-0 m-0 h-[18px] leading-none rounded-none shadow-none focus:ring-0 focus:border-blue-500 print:border-transparent"
+                type="number"
+                readOnly
+                value={currentWeekNumber ?? 1}
+                style={{ textAlign: "center", width: "25px", fontSize: "15px" }}
+                className="bg-transparent border-0 border-b border-gray-400 outline-none text-[12px] font-medium p-0 m-0 h-[18px] leading-none rounded-none shadow-none cursor-default select-none print:border-transparent"
               />
-
-              {/* Pencil Icon (Standard flow, no absolute positioning to prevent shifting) */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gray-400 print:hidden group-hover:text-blue-500 transition-colors"
-              >
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
             </div>
           </div>
         </div>
 
+        {/* FIXED METRIC TARGETS */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-left">
             ប្រកាស Completed Training:{" "}
@@ -167,7 +149,8 @@ export const WeeklyHeader = ({ planData, dynamicWeekNumber }) => {
             <span className="ml-1 font-normal">9</span>
           </div>
           <div className="text-right">
-            ប្រកាស Graduated: <span className="ml-1 font-normal">9</span>
+            ប្រកាស Graduated:{" "}
+            <span className="ml-1 font-normal">9</span>
           </div>
         </div>
       </div>
