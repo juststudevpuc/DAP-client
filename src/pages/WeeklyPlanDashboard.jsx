@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useTelegramExport } from "../hooks/useTelegramExport";
 import { TelegramConnectModal } from "../components/auth/components/telegram/TelegramConnectModal";
 import { ManageWeeksModal } from "../components/weekly-plan/ManageWeeksModal";
+import { SendDailyModal } from "../components/SendDailyModal";
 
 const PAGE_MAX_WIDTH_PX = 3508;
 const PAGE_MAX_HEIGHT_PX = 2480;
@@ -61,6 +62,7 @@ export const WeeklyPlanDashboard = () => {
   const [showTelegramMenu, setShowTelegramMenu] = useState(false);
   const [pendingTelegramType, setPendingTelegramType] = useState("weekly");
   const [showManageModal, setShowManageModal] = useState(false);
+  const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
@@ -329,11 +331,54 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- 5. SEND TO TELEGRAM ---
+  // --- 5. SEND TO TELEGRAM (WEEKLY) ---
   const handleTelegramClick = (type) => {
     setShowTelegramMenu(false);
     setPendingTelegramType(type);
     sendToTelegram(componentRef, planData, type, RENDER_SCALE);
+  };
+
+  // --- 6. SEND MULTI-SELECT DAILY IMAGE WITH DYNAMIC CAPTION TO TELEGRAM ---
+  const handleSendDailyToTelegram = async (daysArray) => {
+    const node = componentRef.current;
+    if (!node) return;
+
+    try {
+      const rawCanvas = await html2canvas(node, {
+        scale: RENDER_SCALE,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        onclone: (clonedDoc) => {
+          const footer = clonedDoc.getElementById("weekly-footer-container");
+          if (footer) footer.style.display = "none";
+        },
+      });
+
+      rawCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert("Failed to capture image snapshot.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", blob, "daily_plan.png");
+        formData.append("week_number", Number(selectedWeek));
+        formData.append("year", Number(filterYear));
+        formData.append("month", Number(filterMonth));
+
+        daysArray.forEach((day, index) => {
+          formData.append(`days[${index}]`, day);
+        });
+
+        const response = await apiService.sendDailyImagesToTelegram(formData);
+        alert(response.message || "Daily image sent successfully to Telegram!");
+      }, "image/png", 1.0);
+
+    } catch (err) {
+      console.error("Failed to send daily image report", err);
+      alert(err.response?.data?.message || "Failed to send report to Telegram.");
+    }
   };
 
   if (!planData || isLoadingWeek) {
@@ -365,6 +410,13 @@ export const WeeklyPlanDashboard = () => {
           fetchHistoryData();
           loadWeekData(filterYear, filterMonth, selectedWeek);
         }}
+      />
+
+      {/* Send Daily Days Selection Modal */}
+      <SendDailyModal
+        isOpen={isDailyModalOpen}
+        onClose={() => setIsDailyModalOpen(false)}
+        onSend={handleSendDailyToTelegram}
       />
 
       <div className="max-w-[1500px] mx-auto flex flex-wrap justify-end gap-2 mb-3 print:hidden items-center">
@@ -449,7 +501,10 @@ export const WeeklyPlanDashboard = () => {
           {showTelegramMenu && (
             <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
               <button
-                onClick={() => handleTelegramClick("daily")}
+                onClick={() => {
+                  setShowTelegramMenu(false);
+                  setIsDailyModalOpen(true);
+                }}
                 className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 transition"
               >
                 Send Daily Image
