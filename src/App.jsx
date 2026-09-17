@@ -3,15 +3,20 @@ import { WeeklyPlanDashboard } from "./pages/WeeklyPlanDashboard";
 import { Login } from "./components/auth/Login";
 import { Register } from "./components/auth/Register";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AdminRoute } from "./components/auth/AdminRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { Landing } from "./pages/LandingPage";
+import { ManageUsersPage } from "./pages/super-admin/ManageUsersPage";
+import { CompanySummaryDashboard } from "./pages/admin/CompanySummaryDashboard";
+import { TeamOverviewDashboard } from "./pages/admin/TeamOverviewDashboard";
 import "./App.css";
 
-// Placeholder for your general Dashboard overview page
+// Placeholder Pages (Replace with dedicated component files when ready)
 const MainDashboard = () => (
   <div className="p-8">
     <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
     <p className="text-sm text-gray-500 mt-1">Welcome back to your CheckinMe workspace.</p>
+    <p className="text-sm text-gray-500 mt-1">It's pending in development tasks</p>
   </div>
 );
 
@@ -24,11 +29,22 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* --- Protected Routes with Sidebar Layout --- */}
+        {/* --- Authenticated Routes (All Logged-in Users) --- */}
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<MainDashboard />} />
             <Route path="/weekly-plan" element={<WeeklyPlanDashboard />} />
+
+            {/* --- Admin & Super Admin Shared Routes --- */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/team-overview" element={<TeamOverviewDashboard />} />
+              <Route path="/admin/company-summary" element={<CompanySummaryDashboard />} />
+            </Route>
+
+            {/* --- Super Admin Exclusive Routes --- */}
+            <Route element={<AdminRoute requireSuperAdmin={true} />}>
+              <Route path="/super-admin/manage-users" element={<ManageUsersPage />} />
+            </Route>
           </Route>
         </Route>
 

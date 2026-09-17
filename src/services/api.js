@@ -94,6 +94,33 @@ export const apiService = {
     completeWeeklyPlan: async (planId, summaryData) => {
         const response = await apiClient.post(`/weekly-plans/${planId}/complete`, summaryData);
         return response.data;
+    },
+
+    // --- Admin & Team Overview Endpoints ---
+    getMemberPlan: async (params) => {
+        const response = await apiClient.get('/admin/member-plan', { params });
+        return response.data;
+    },
+
+    getTeamOverview: async (params) => {
+        const response = await apiClient.get('/admin/team-reports', { params });
+        return response.data.data || response.data;
+    },
+
+    getCompanySummary: async (params) => {
+        const response = await apiClient.get('/admin/company-summary', { params });
+        return response.data.data || response.data;
+    },
+
+    // --- Super Admin Endpoints ---
+    getAllUsers: async () => {
+        const response = await apiClient.get('/admin/users');
+        return response.data.data || response.data;
+    },
+
+    updateUserRole: async (userId, role) => {
+        const response = await apiClient.patch(`/super-admin/users/${userId}/role`, { role });
+        return response.data;
     }
 
 };

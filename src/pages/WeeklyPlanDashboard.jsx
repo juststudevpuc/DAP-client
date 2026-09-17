@@ -414,15 +414,6 @@ export const WeeklyPlanDashboard = () => {
           </select>
 
           <Button
-            variant="default"
-            size="sm"
-            onClick={() => loadWeekData(filterYear, filterMonth, selectedWeek)}
-            className="h-8 text-xs bg-blue-500 hover:bg-blue-600 text-white ml-1"
-          >
-            🔍 Filter
-          </Button>
-
-          <Button
             variant="outline"
             size="sm"
             onClick={handleResetToDefault}
@@ -430,15 +421,6 @@ export const WeeklyPlanDashboard = () => {
             className="h-8 text-xs border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
           >
             🔄 Refresh
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowManageModal(true)}
-            className="h-8 text-xs text-red-600 border-red-300 hover:bg-red-50 flex items-center gap-1"
-          >
-            🗑️ Manage Weeks
           </Button>
         </div>
 
@@ -510,15 +492,6 @@ export const WeeklyPlanDashboard = () => {
           className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
         >
           {isExportingPdf ? "Generating..." : "Download PDF"}
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLogout}
-          className="h-8 text-xs text-gray-600 border-gray-300 hover:bg-gray-100"
-        >
-          Sign Out
         </Button>
       </div>
 

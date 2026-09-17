@@ -7,9 +7,11 @@ export const Sidebar = ({ isOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
-
-  // Get current user details from store if available
   const user = useAuthStore((state) => state.user);
+
+  // Role permissions
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
 
   const handleLogout = async () => {
     try {
@@ -34,10 +36,10 @@ export const Sidebar = ({ isOpen }) => {
       <div className="p-5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-200">
-            T
+            C
           </div>
           <div>
-            <h1 className="text-sm font-bold text-gray-900 tracking-tight">Trainer</h1>
+            <h1 className="text-sm font-bold text-gray-900 tracking-tight">CheckinMe</h1>
             <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Workspace</p>
           </div>
         </div>
@@ -88,17 +90,106 @@ export const Sidebar = ({ isOpen }) => {
           </svg>
           Weekly Action Plan
         </Link>
+
+        {/* Admin & Super Admin Section */}
+        {isAdmin && (
+          <div className="pt-4 mt-3 border-t border-gray-100">
+            <div className="px-3 pb-2 text-[10px] font-semibold text-blue-600 uppercase tracking-wider">
+              Admin Controls
+            </div>
+
+            <Link
+              to="/admin/team-overview"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all relative group ${
+                isActive("/admin/team-overview")
+                  ? "bg-blue-50/80 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              {isActive("/admin/team-overview") && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
+              )}
+              <svg className={`w-4 h-4 ${isActive("/admin/team-overview") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Team Overview
+            </Link>
+
+            <Link
+              to="/admin/company-summary"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all relative group ${
+                isActive("/admin/company-summary")
+                  ? "bg-blue-50/80 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              {isActive("/admin/company-summary") && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
+              )}
+              <svg className={`w-4 h-4 ${isActive("/admin/company-summary") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              Company Summary
+            </Link>
+          </div>
+        )}
+
+        {/* Super Admin Exclusive Section */}
+        {isSuperAdmin && (
+          <div className="pt-4 mt-3 border-t border-gray-100">
+            <div className="px-3 pb-2 text-[10px] font-semibold text-purple-600 uppercase tracking-wider">
+              Super Admin
+            </div>
+
+            <Link
+              to="/super-admin/manage-users"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all relative group ${
+                isActive("/super-admin/manage-users")
+                  ? "bg-purple-50/80 text-purple-700 font-semibold"
+                  : "text-gray-600 hover:bg-purple-50/40 hover:text-purple-700"
+              }`}
+            >
+              {isActive("/super-admin/manage-users") && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-purple-600 rounded-r-full" />
+              )}
+              <svg className={`w-4 h-4 ${isActive("/super-admin/manage-users") ? "text-purple-600" : "text-gray-400 group-hover:text-purple-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              Manage Roles & Staff
+            </Link>
+          </div>
+        )}
       </nav>
 
-      {/* Footer / User Profile snippet & Sign Out */}
+      {/* User Profile & Role Badge */}
       <div className="p-3 border-t border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3 px-2 py-2 mb-2">
-          <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 text-xs font-bold">
+          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
             {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
           </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "Workspace User"}</p>
-            <p className="text-[10px] text-gray-400 truncate">{user?.email || "Connected"}</p>
+          <div className="overflow-hidden flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "Workspace User"}</p>
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span
+                className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded leading-none ${
+                  user?.role === "super_admin"
+                    ? "bg-purple-100 text-purple-700 border border-purple-200"
+                    : user?.role === "admin"
+                    ? "bg-blue-100 text-blue-700 border border-blue-200"
+                    : "bg-gray-100 text-gray-600 border border-gray-200"
+                }`}
+              >
+                {user?.role ? user.role.replace("_", " ") : "member"}
+              </span>
+              <p className="text-[10px] text-gray-400 truncate">{user?.email || "Connected"}</p>
+            </div>
           </div>
         </div>
 
