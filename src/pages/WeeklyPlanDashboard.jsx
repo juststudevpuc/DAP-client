@@ -371,13 +371,25 @@ export const WeeklyPlanDashboard = () => {
           formData.append(`days[${index}]`, day);
         });
 
-        const response = await apiService.sendDailyImagesToTelegram(formData);
-        alert(response.message || "Daily image sent successfully to Telegram!");
+        try {
+          const response = await apiService.sendDailyImagesToTelegram(formData);
+          alert(response.message || "Daily image sent successfully to Telegram!");
+        } catch (err) {
+          // 💡 Catch 403 or linking error and pop up the Telegram Connect Modal!
+          if (err.response?.status === 403 || err.response?.data?.needs_linking) {
+            setPendingTelegramType("daily-custom"); // or trigger connection flow
+            setShowConnectModal(true);
+          } else {
+            throw err;
+          }
+        }
       }, "image/png", 1.0);
 
     } catch (err) {
       console.error("Failed to send daily image report", err);
-      alert(err.response?.data?.message || "Failed to send report to Telegram.");
+      if (err.response?.status !== 403) {
+        alert(err.response?.data?.message || "Failed to send report to Telegram.");
+      }
     }
   };
 
