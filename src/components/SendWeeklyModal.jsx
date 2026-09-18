@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { RingLoader } from "react-spinners";
+import Swal from "sweetalert2";
 
 export const SendWeeklyModal = ({ isOpen, onClose, onSend }) => {
   const [selectedWeek, setSelectedWeek] = useState(1);
@@ -21,7 +23,7 @@ export const SendWeeklyModal = ({ isOpen, onClose, onSend }) => {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
-  const handleConfirmSend = async () => {
+ const handleConfirmSend = async () => {
     setLoading(true);
     try {
       const monthName = getMonthName(Number(selectedMonth));
@@ -33,9 +35,27 @@ export const SendWeeklyModal = ({ isOpen, onClose, onSend }) => {
         month: Number(selectedMonth),
         caption: customCaption,
       });
+
+      // NEW: Success Alert
+      Swal.fire({
+        icon: 'success',
+        title: 'Sent!',
+        text: 'Weekly plan sent to Telegram successfully.',
+        showConfirmButton: false,
+        timer: 1800
+      });
+
       onClose();
     } catch (err) {
       console.error("Failed to send weekly telegram image", err);
+      
+      // NEW: Error Alert
+      Swal.fire({
+        icon: 'error',
+        title: 'Send Failed',
+        text: 'Failed to send image to Telegram. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
     } finally {
       setLoading(false);
     }
@@ -121,13 +141,20 @@ export const SendWeeklyModal = ({ isOpen, onClose, onSend }) => {
           >
             Cancel
           </button>
-          <button
+         <button
             type="button"
             onClick={handleConfirmSend}
             disabled={loading}
             className="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            {loading ? "Sending..." : "🚀 Send to Telegram"}
+            {loading ? (
+              <>
+                <RingLoader color="#ffffff" size={16} />
+                Sending...
+              </>
+            ) : (
+              "🚀 Send to Telegram"
+            )}
           </button>
         </div>
 

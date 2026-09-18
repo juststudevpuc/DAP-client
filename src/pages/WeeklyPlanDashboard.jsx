@@ -16,6 +16,8 @@ import { TelegramConnectModal } from "../components/auth/components/telegram/Tel
 import { ManageWeeksModal } from "../components/weekly-plan/ManageWeeksModal";
 import { SendDailyModal } from "../components/SendDailyModal";
 import { SendWeeklyModal } from "../components/SendWeeklyModal";
+import Swal from "sweetalert2";
+import { RingLoader } from "react-spinners";
 const PAGE_MAX_WIDTH_PX = 3508;
 const PAGE_MAX_HEIGHT_PX = 2480;
 const RENDER_SCALE = 3;
@@ -161,7 +163,12 @@ export const WeeklyPlanDashboard = () => {
 
   const handleSaveWeek = async (summaryPayload) => {
     if (!planData?.id) {
-      alert("⚠️ Plan is still initializing. Please wait a second and try again.");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Process',
+        text: 'Plan is still Process. Please wait a second and try again.',
+        confirmButtonColor: '#f59e0b' // Tailwind amber-500
+      });
       return;
     }
 
@@ -175,12 +182,25 @@ export const WeeklyPlanDashboard = () => {
 
       await apiService.updateWeeklyPlan(planData.id, payloadToSend);
 
-      alert(`✅ Week ${selectedWeek} saved to database!`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Saved!',
+        text: `Week ${selectedWeek} saved!`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+
       await fetchHistoryData();
       await loadWeekData(filterYear, filterMonth, selectedWeek);
     } catch (error) {
       console.error("Failed to save week", error);
-      alert("❌ Failed to save. Check browser network tab for validation errors.");
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Save Failed',
+        text: 'Failed to save. Check browser network tab for validation errors.',
+        confirmButtonColor: '#ef4444'
+      });
     }
   };
 
@@ -418,10 +438,11 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  if (!planData || isLoadingWeek) {
+ if (!planData || isLoadingWeek) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">
-        Loading CheckinMe Dashboard...
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-cyan-500 font-medium">
+        <RingLoader color="#22d3ee" size={60} />
+        <p>Loading...</p>
       </div>
     );
   }

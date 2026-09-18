@@ -39,7 +39,7 @@ export const Sidebar = ({ isOpen }) => {
             C
           </div>
           <div>
-            <h1 className="text-sm font-bold text-gray-900 tracking-tight">CheckinMe</h1>
+            <h1 className="text-sm font-bold text-gray-900 tracking-tight">SOLVE</h1>
             <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Workspace</p>
           </div>
         </div>

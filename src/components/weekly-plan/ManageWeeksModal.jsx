@@ -1,25 +1,54 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiService } from "../../services/api";
+import Swal from "sweetalert2";
 
 export const ManageWeeksModal = ({ isOpen, onClose, history, onDeleted }) => {
   const [deletingId, setDeletingId] = useState(null);
 
   if (!isOpen) return null;
 
-  const handleDelete = async (id, weekNumber) => {
-    if (!window.confirm(`Are you sure you want to permanently delete Week ${weekNumber}?`)) {
+ const handleDelete = async (id, weekNumber) => {
+    // 1. The SweetAlert Confirmation Popup
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `Do you want to permanently delete Week ${weekNumber}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444', // Tailwind red-500 for delete
+      cancelButtonColor: '#6b7280',  // Tailwind gray-500 for cancel
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    // Stop execution if they click Cancel or click outside the box
+    if (!result.isConfirmed) {
       return;
     }
 
     setDeletingId(id);
     try {
       await apiService.deleteWeeklyPlan(id);
-      alert(`✅ Week ${weekNumber} deleted successfully.`);
+      
+      // 2. The Success Popup
+      Swal.fire({
+        icon: 'success',
+        title: 'Deleted!',
+        text: `Week ${weekNumber} deleted successfully.`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+      
       onDeleted(); 
     } catch (error) {
       console.error("Failed to delete plan", error);
-      alert("❌ Failed to delete weekly plan. Please check your connection.");
+      
+      // 3. The Error Popup
+      Swal.fire({
+        icon: 'error',
+        title: 'Delete Failed',
+        text: 'Failed to delete weekly plan. Please check your connection.',
+        confirmButtonColor: '#3b82f6'
+      });
     } finally {
       setDeletingId(null);
     }
