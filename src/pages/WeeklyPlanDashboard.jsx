@@ -15,7 +15,7 @@ import { useTelegramExport } from "../hooks/useTelegramExport";
 import { TelegramConnectModal } from "../components/auth/components/telegram/TelegramConnectModal";
 import { ManageWeeksModal } from "../components/weekly-plan/ManageWeeksModal";
 import { SendDailyModal } from "../components/SendDailyModal";
-
+import { SendWeeklyModal } from "../components/SendWeeklyModal";
 const PAGE_MAX_WIDTH_PX = 3508;
 const PAGE_MAX_HEIGHT_PX = 2480;
 const RENDER_SCALE = 3;
@@ -25,7 +25,6 @@ export const WeeklyPlanDashboard = () => {
   const [history, setHistory] = useState([]);
   const [isLoadingWeek, setIsLoadingWeek] = useState(false);
 
-  // Initialize from localStorage so refresh preserves user position
   const currentYear = new Date().getFullYear().toString();
   const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, "0");
 
@@ -42,7 +41,6 @@ export const WeeklyPlanDashboard = () => {
     return savedWeek ? Number(savedWeek) : 1;
   });
 
-  // Sync choices to localStorage on every change
   useEffect(() => {
     localStorage.setItem("checkinme_filter_year", filterYear);
   }, [filterYear]);
@@ -63,6 +61,7 @@ export const WeeklyPlanDashboard = () => {
   const [pendingTelegramType, setPendingTelegramType] = useState("weekly");
   const [showManageModal, setShowManageModal] = useState(false);
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
+  const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false); // 👈 Weekly modal state
 
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
@@ -78,7 +77,6 @@ export const WeeklyPlanDashboard = () => {
   const isExportingAny =
     isExportingPdf || isExportingWeeklyPng || isExportingDailyPng || isSendingTelegram;
 
-  // Load all plans for the Manage Weeks modal
   const fetchHistoryData = async () => {
     try {
       const response = await apiService.getWeeklyPlans();
@@ -95,7 +93,6 @@ export const WeeklyPlanDashboard = () => {
     fetchHistoryData();
   }, []);
 
-  // Fetch or initialize the specific Year, Month, and Week (1-4)
   const loadWeekData = async (year, month, week) => {
     setIsLoadingWeek(true);
     try {
@@ -112,11 +109,9 @@ export const WeeklyPlanDashboard = () => {
       if (list.length > 0) {
         setPlanData(list[0]);
       } else {
-        // Calculate date anchor for target week slot
         const startDay = (week - 1) * 7 + 1;
         const formattedStartDate = `${year}-${month}-${String(startDay).padStart(2, "0")}`;
 
-        // Auto-create week in database so day metrics receive permanent IDs immediately
         const created = await apiService.createWeeklyPlan({
           week_number: Number(week),
           start_date: formattedStartDate,
@@ -137,23 +132,19 @@ export const WeeklyPlanDashboard = () => {
     loadWeekData(filterYear, filterMonth, selectedWeek);
   }, [filterYear, filterMonth, selectedWeek]);
 
-  // Reset to default system time and Week 1
   const handleResetToDefault = () => {
     const defaultYear = new Date().getFullYear().toString();
     const defaultMonth = (new Date().getMonth() + 1).toString().padStart(2, "0");
     const defaultWeek = 1;
 
-    // Clear saved selections from localStorage
     localStorage.removeItem("checkinme_filter_year");
     localStorage.removeItem("checkinme_filter_month");
     localStorage.removeItem("checkinme_selected_week");
 
-    // Reset component states
     setFilterYear(defaultYear);
     setFilterMonth(defaultMonth);
     setSelectedWeek(defaultWeek);
 
-    // Immediately fetch default week
     loadWeekData(defaultYear, defaultMonth, defaultWeek);
   };
 
@@ -168,7 +159,6 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- SAVE / UPDATE HANDLER ---
   const handleSaveWeek = async (summaryPayload) => {
     if (!planData?.id) {
       alert("⚠️ Plan is still initializing. Please wait a second and try again.");
@@ -194,7 +184,6 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- 1. NATIVE BROWSER PRINT HANDLER ---
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
     content: () => componentRef.current,
@@ -214,7 +203,6 @@ export const WeeklyPlanDashboard = () => {
     `,
   });
 
-  // --- 2. HIGH-QUALITY PDF EXPORT ---
   const handleExportPdf = async () => {
     const node = componentRef.current;
     if (!node) return;
@@ -268,7 +256,6 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- 3. WEEKLY PNG (FULL PAGE) ---
   const handleExportWeeklyPng = async () => {
     const node = componentRef.current;
     if (!node) return;
@@ -298,7 +285,6 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- 4. DAILY PNG (NO FOOTER) ---
   const handleExportDailyPng = async () => {
     const node = componentRef.current;
     if (!node) return;
@@ -331,20 +317,62 @@ export const WeeklyPlanDashboard = () => {
     }
   };
 
-  // --- 5. SEND TO TELEGRAM (WEEKLY) ---
-  const handleTelegramClick = (type) => {
-    setShowTelegramMenu(false);
-    setPendingTelegramType(type);
-    sendToTelegram(componentRef, planData, type, RENDER_SCALE);
+  // --- 5. SEND WEEKLY IMAGE TO TELEGRAM (WITH DYNAMIC CAPTION) ---
+  const handleSendWeeklyToTelegram = async ({ week_number, month, caption }) => {
+    const node = componentRef.current;
+    if (!node) return;
+
+    try {
+      const rawCanvas = await html2canvas(node, {
+        scale: 1.5, // Optimized speed scale
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        windowWidth: node.scrollWidth,
+        windowHeight: node.scrollHeight,
+        logging: false,
+      });
+
+      rawCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert("Failed to capture image snapshot.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", blob, "weekly_plan.png");
+        formData.append("week_number", week_number);
+        formData.append("month", month);
+        formData.append("year", Number(filterYear));
+        formData.append("caption", caption); // 👈 Custom caption sent to backend
+
+        try {
+          const response = await apiService.sendWeeklyImagesToTelegram(formData);
+          alert(response.message || "Weekly report sent successfully to Telegram!");
+        } catch (err) {
+          if (err.response?.status === 403 || err.response?.data?.needs_linking) {
+            setPendingTelegramType("weekly-custom");
+            setShowConnectModal(true);
+          } else {
+            throw err;
+          }
+        }
+      }, "image/jpeg", 0.9);
+
+    } catch (err) {
+      console.error("Failed to send weekly image report", err);
+      if (err.response?.status !== 403) {
+        alert(err.response?.data?.message || "Failed to send report to Telegram.");
+      }
+    }
   };
 
-  // --- 6. SEND MULTI-SELECT DAILY IMAGE WITH DYNAMIC CAPTION TO TELEGRAM ---
+  // --- 6. SEND MULTI-SELECT DAILY IMAGE TO TELEGRAM ---
   const handleSendDailyToTelegram = async (daysArray) => {
     const node = componentRef.current;
     if (!node) return;
 
     try {
-      // 🚀 Use a lighter scale (e.g., 1.5 or 2) specifically for Telegram uploads so it's super fast
       const rawCanvas = await html2canvas(node, {
         scale: 1.5, 
         useCORS: true,
@@ -380,7 +408,7 @@ export const WeeklyPlanDashboard = () => {
             throw err;
           }
         }
-      }, "image/jpeg", 0.9); // 💡 Compressed JPEG blob for lightning-fast network transmission
+      }, "image/jpeg", 0.9);
 
     } catch (err) {
       console.error("Failed to send daily image report", err);
@@ -400,17 +428,17 @@ export const WeeklyPlanDashboard = () => {
 
   return (
     <div className="min-h-[1000px] print:min-h-0 bg-gray-50 print:bg-white p-5 print:p-0">
-      {/* Telegram Connect Modal */}
       <TelegramConnectModal
         isOpen={showConnectModal}
         onClose={() => setShowConnectModal(false)}
         onLinked={() => {
           setShowConnectModal(false);
-          handleTelegramClick(pendingTelegramType);
+          if (pendingTelegramType === "weekly-custom") {
+            setIsWeeklyModalOpen(true);
+          }
         }}
       />
 
-      {/* Manage / Delete Weeks Modal */}
       <ManageWeeksModal
         isOpen={showManageModal}
         onClose={() => setShowManageModal(false)}
@@ -421,15 +449,20 @@ export const WeeklyPlanDashboard = () => {
         }}
       />
 
-      {/* Send Daily Days Selection Modal */}
       <SendDailyModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
         onSend={handleSendDailyToTelegram}
       />
 
+      {/* Weekly Selection Modal */}
+      <SendWeeklyModal
+        isOpen={isWeeklyModalOpen}
+        onClose={() => setIsWeeklyModalOpen(false)}
+        onSend={handleSendWeeklyToTelegram}
+      />
+
       <div className="max-w-[1500px] mx-auto flex flex-wrap justify-end gap-2 mb-3 print:hidden items-center">
-        {/* Filters: Year, Month, Fixed 4-Week Selector, Filter Action, and Reset Button */}
         <div className="flex items-center mr-auto gap-2">
           <label className="text-xs font-semibold text-gray-700">Filter Year:</label>
           <select
@@ -478,7 +511,6 @@ export const WeeklyPlanDashboard = () => {
             variant="outline"
             size="sm"
             onClick={handleResetToDefault}
-            title="Reset filters and return to current month Week 1"
             className="h-8 text-xs border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
           >
             🔄 Refresh
@@ -519,7 +551,10 @@ export const WeeklyPlanDashboard = () => {
                 Send Daily Image
               </button>
               <button
-                onClick={() => handleTelegramClick("weekly")}
+                onClick={() => {
+                  setShowTelegramMenu(false);
+                  setIsWeeklyModalOpen(true); // 👈 Opens the weekly selection modal
+                }}
                 className="w-full text-left px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-sky-50 transition border-t border-gray-100"
               >
                 Send Weekly Image
