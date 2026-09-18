@@ -22,22 +22,28 @@ export const TeamPlanMetrics = ({ planData, isAllUsers }) => {
     'Provide Lesson (Path)': 0,
   };
 
+  // --- ACTUALS CALCULATIONS ---
   const totalActualTraining = isAllUsers
-    ? planData.actual_training || 0
-    : planData.daily_metrics?.reduce((sum, m) => sum + (m.train_completed || 0), 0) || 0;
+    ? planData.actual_training || planData.total_training || 0
+    : planData.daily_metrics?.reduce((sum, m) => sum + (Number(m.train_completed) || 0), 0) || 0;
 
   const totalActualOnboarding = isAllUsers
-    ? planData.actual_onboarding || 0
-    : planData.daily_metrics?.reduce((sum, m) => sum + (m.onboard_success || 0), 0) || 0;
+    ? planData.actual_onboarding || planData.total_onboarding || 0
+    : planData.daily_metrics?.reduce((sum, m) => sum + (Number(m.onboard_success) || 0), 0) || 0;
 
+  // 💡 Robust Graduation Actuals with multi-key fallbacks
   const totalActualGraduated = isAllUsers
-    ? planData.actual_graduated || 0
-    : planData.daily_metrics?.reduce((sum, m) => sum + (m.grad_book || 0), 0) || 0;
+    ? (planData.actual_graduated || 
+       planData.total_graduated || 
+       planData.total_grad_book || 
+       planData.category_totals?.['Graduation'] || 
+       planData.daily_metrics?.reduce((sum, m) => sum + (Number(m.grad_book) || Number(m.graduated) || 0), 0) || 0)
+    : planData.daily_metrics?.reduce((sum, m) => sum + (Number(m.grad_book) || Number(m.graduated) || 0), 0) || 0;
 
-  // 💡 Exact weekly targets requested
-  const trainingTarget = isAllUsers ? (planData.target_completed_training || 10) : 10;
-  const onboardingTarget = isAllUsers ? (planData.target_completed_onboarding || 9) : 9;
-  const graduatedTarget = isAllUsers ? (planData.target_graduated || 9) : 9;
+  // --- TARGETS CALCULATIONS ---
+  const trainingTarget = isAllUsers ? (planData.target_completed_training || 90) : 10;
+  const onboardingTarget = isAllUsers ? (planData.target_completed_onboarding || 81) : 9;
+  const graduatedTarget = isAllUsers ? (planData.target_graduated || planData.target_grad_book || 81) : 9;
 
   const getProgress = (actual, target) => {
     if (!target || target === 0) return 0;
