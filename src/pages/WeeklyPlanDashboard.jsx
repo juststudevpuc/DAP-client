@@ -367,17 +367,15 @@ export const WeeklyPlanDashboard = () => {
         formData.append("year", Number(filterYear));
         formData.append("month", Number(filterMonth));
 
-        daysArray.forEach((day, index) => {
-          formData.append(`days[${index}]`, day);
-        });
+        // 💡 Pass as a JSON string so Laravel's validator handles it easily as a single field
+        formData.append("days", JSON.stringify(daysArray));
 
         try {
           const response = await apiService.sendDailyImagesToTelegram(formData);
           alert(response.message || "Daily image sent successfully to Telegram!");
         } catch (err) {
-          // 💡 Catch 403 or linking error and pop up the Telegram Connect Modal!
           if (err.response?.status === 403 || err.response?.data?.needs_linking) {
-            setPendingTelegramType("daily-custom"); // or trigger connection flow
+            setPendingTelegramType("daily-custom");
             setShowConnectModal(true);
           } else {
             throw err;

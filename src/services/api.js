@@ -124,7 +124,11 @@ export const apiService = {
     },
 
     sendDailyImagesToTelegram: async (formData) => {
-        const response = await apiClient.post('/telegram/send-daily-images', formData);
+        const response = await apiClient.post('/telegram/send-daily-images', formData, {
+            headers: {
+                'Content-Type': undefined,
+            },
+        });
         return response.data;
     },
 
