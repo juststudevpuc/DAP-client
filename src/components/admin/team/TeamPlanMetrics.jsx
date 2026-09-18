@@ -34,9 +34,10 @@ export const TeamPlanMetrics = ({ planData, isAllUsers }) => {
     ? planData.actual_graduated || 0
     : planData.daily_metrics?.reduce((sum, m) => sum + (m.grad_book || 0), 0) || 0;
 
-  const trainingTarget = planData.target_completed_training || 0;
-  const onboardingTarget = planData.target_completed_onboarding || 0;
-  const graduatedTarget = planData.target_graduated || 0;
+  // 💡 Exact weekly targets requested
+  const trainingTarget = isAllUsers ? (planData.target_completed_training || 10) : 10;
+  const onboardingTarget = isAllUsers ? (planData.target_completed_onboarding || 9) : 9;
+  const graduatedTarget = isAllUsers ? (planData.target_graduated || 9) : 9;
 
   const getProgress = (actual, target) => {
     if (!target || target === 0) return 0;
@@ -47,20 +48,22 @@ export const TeamPlanMetrics = ({ planData, isAllUsers }) => {
     <div className="space-y-6">
       {/* Target & Progress Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        
+        {/* 1. Training Progress Card */}
         <Card className="p-5 bg-white border border-gray-200/85 shadow-xs rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 h-1 bg-blue-500 w-full opacity-80" />
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               {isAllUsers ? "Team Training Total" : "Training Progress"}
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
+            <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-bold">
               {getProgress(totalActualTraining, trainingTarget)}% Done
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <div>
+            <div className="flex items-baseline gap-1.5">
               <span className="text-3xl font-black text-gray-900">{totalActualTraining}</span>
-              <span className="text-xs text-gray-400 ml-1.5">/ {trainingTarget} target</span>
+              <span className="text-xs font-medium text-gray-400">/ {trainingTarget} target</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shadow-inner">
               📚
@@ -68,20 +71,21 @@ export const TeamPlanMetrics = ({ planData, isAllUsers }) => {
           </div>
         </Card>
 
+        {/* 2. Onboarding Progress Card */}
         <Card className="p-5 bg-white border border-gray-200/85 shadow-xs rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 h-1 bg-emerald-500 w-full opacity-80" />
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               {isAllUsers ? "Team Onboarding Total" : "Onboarding Progress"}
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-bold">
               {getProgress(totalActualOnboarding, onboardingTarget)}% Done
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <div>
+            <div className="flex items-baseline gap-1.5">
               <span className="text-3xl font-black text-gray-900">{totalActualOnboarding}</span>
-              <span className="text-xs text-gray-400 ml-1.5">/ {onboardingTarget} target</span>
+              <span className="text-xs font-medium text-gray-400">/ {onboardingTarget} target</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg shadow-inner">
               🚀
@@ -89,26 +93,28 @@ export const TeamPlanMetrics = ({ planData, isAllUsers }) => {
           </div>
         </Card>
 
+        {/* 3. Graduation Progress Card */}
         <Card className="p-5 bg-white border border-gray-200/85 shadow-xs rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 h-1 bg-purple-500 w-full opacity-80" />
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               {isAllUsers ? "Team Graduation Total" : "Graduation Progress"}
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-[10px] font-bold">
+            <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-bold">
               {getProgress(totalActualGraduated, graduatedTarget)}% Done
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <div>
+            <div className="flex items-baseline gap-1.5">
               <span className="text-3xl font-black text-gray-900">{totalActualGraduated}</span>
-              <span className="text-xs text-gray-400 ml-1.5">/ {graduatedTarget} target</span>
+              <span className="text-xs font-medium text-gray-400">/ {graduatedTarget} target</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-lg shadow-inner">
               🎓
             </div>
           </div>
         </Card>
+
       </div>
 
       {/* MODULE BREAKDOWN (No Targets, Completion Count Only) */}
