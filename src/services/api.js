@@ -131,6 +131,14 @@ export const apiService = {
         });
         return response.data;
     },
+    sendWeeklyImagesToTelegram: async (formData) => {
+        const response = await apiClient.post('/telegram/send-weekly-images', formData, {
+            headers: {
+                'Content-Type': undefined,
+            },
+        });
+        return response.data;
+    },
 
     deleteUser: async (userId) => {
         const response = await apiClient.delete(`/super-admin/users/${userId}`);
