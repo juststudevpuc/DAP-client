@@ -276,7 +276,7 @@ export const WeeklyPlanDashboard = () => {
     setIsExportingWeeklyPng(true);
     try {
       const rawCanvas = await html2canvas(node, {
-        scale: 5,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -344,8 +344,9 @@ export const WeeklyPlanDashboard = () => {
     if (!node) return;
 
     try {
+      // 🚀 Use a lighter scale (e.g., 1.5 or 2) specifically for Telegram uploads so it's super fast
       const rawCanvas = await html2canvas(node, {
-        scale: RENDER_SCALE,
+        scale: 1.5, 
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -366,8 +367,6 @@ export const WeeklyPlanDashboard = () => {
         formData.append("week_number", Number(selectedWeek));
         formData.append("year", Number(filterYear));
         formData.append("month", Number(filterMonth));
-
-        // 💡 Pass as a JSON string so Laravel's validator handles it easily as a single field
         formData.append("days", JSON.stringify(daysArray));
 
         try {
@@ -381,7 +380,7 @@ export const WeeklyPlanDashboard = () => {
             throw err;
           }
         }
-      }, "image/png", 1.0);
+      }, "image/jpeg", 0.9); // 💡 Compressed JPEG blob for lightning-fast network transmission
 
     } catch (err) {
       console.error("Failed to send daily image report", err);
