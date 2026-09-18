@@ -122,14 +122,16 @@ export const apiService = {
         const response = await apiClient.patch(`/super-admin/users/${userId}/role`, { role });
         return response.data;
     },
+
     sendDailyImagesToTelegram: async (formData) => {
-    const response = await apiClient.post('/telegram/send-daily-images', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-    return response.data;
-}
+        const response = await apiClient.post('/telegram/send-daily-images', formData);
+        return response.data;
+    },
+
+    deleteUser: async (userId) => {
+        const response = await apiClient.delete(`/super-admin/users/${userId}`);
+        return response.data;
+    }
 
 };
 

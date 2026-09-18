@@ -9,6 +9,7 @@ export const ManageUsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null); // 👈 Track deleting user
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchUsers = async () => {
@@ -49,6 +50,30 @@ export const ManageUsersPage = () => {
     }
   };
 
+  // --- DELETE USER HANDLER ---
+  const handleDeleteUser = async (userId, userName) => {
+    if (userId === currentUser?.id) {
+      alert("⚠️ You cannot delete your own account while logged in.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(userId);
+    try {
+      await apiService.deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      alert("✅ User deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete user", error);
+      alert(error.response?.data?.message || "❌ Failed to delete user.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -64,7 +89,7 @@ export const ManageUsersPage = () => {
             Staff & Role Management
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Assign workspace roles and permission levels to team members.
+            Assign workspace roles, permission levels, or remove team members.
           </p>
         </div>
 
@@ -98,18 +123,19 @@ export const ManageUsersPage = () => {
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Current Role</th>
                 <th className="py-3 px-4 text-center">Change Permission</th>
+                <th className="py-3 px-4 text-center">Actions</th> {/* 👈 Added Actions Column */}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-400">
+                  <td colSpan={5} className="py-8 text-center text-gray-400">
                     Loading users directory...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-400">
+                  <td colSpan={5} className="py-8 text-center text-gray-400">
                     No matching users found.
                   </td>
                 </tr>
@@ -156,6 +182,18 @@ export const ManageUsersPage = () => {
                           <option value="admin">Admin (Team Lead)</option>
                           <option value="super_admin">Super Admin (Full Access)</option>
                         </select>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {/* 👈 Delete Button with protection check */}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={isCurrent || deletingId === item.id}
+                          onClick={() => handleDeleteUser(item.id, item.name)}
+                          className="h-7 px-2.5 text-[11px] bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {deletingId === item.id ? "Deleting..." : "🗑️ Delete"}
+                        </Button>
                       </td>
                     </tr>
                   );
