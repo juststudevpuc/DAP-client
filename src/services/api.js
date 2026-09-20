@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            
+
             // Prevent multiple alerts if several requests fail at the exact same time
             if (!Swal.isVisible()) {
                 Swal.fire({
@@ -44,9 +44,9 @@ apiClient.interceptors.response.use(
                 }).then(() => {
                     // Clear the state
                     useAuthStore.getState().logout();
-                    
+
                     // Force redirect to login page (safest method from outside React Router)
-                    window.location.href = '/login'; 
+                    window.location.href = '/login';
                 });
             }
         }
@@ -161,7 +161,13 @@ export const apiService = {
     deleteUser: async (userId) => {
         const response = await apiClient.delete(`/super-admin/users/${userId}`);
         return response.data;
-    }
+    },
+
+    // --- Public Endpoints ---
+    getPublicStats: async () => {
+        const response = await apiClient.get('/public/stats');
+        return response.data;
+    },
 
 };
 
