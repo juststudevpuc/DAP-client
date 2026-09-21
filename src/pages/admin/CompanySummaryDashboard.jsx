@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import { apiService } from "../../services/api";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
 import { CompanySummaryTemplate } from "../../components/CompanySummaryTemplate";
-=======
 import { RingLoader } from "react-spinners";
->>>>>>> 676415ed57c8a49ebdc6323bd005fe7dbbf27e9a
 
 export const CompanySummaryDashboard = () => {
   const [year, setYear] = useState(2026);
@@ -39,13 +37,15 @@ export const CompanySummaryDashboard = () => {
     }
   };
 
-  useEffect(() => { fetchSummary(); }, [year, month, weekNumber]);
+  useEffect(() => { 
+    fetchSummary(); 
+  }, [year, month, weekNumber]);
 
   const handleNotesChange = (field, value) => {
     setNotes((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Export PDF
+  // --- Export PDF ---
   const handleExportPdf = async () => {
     const node = templateRef.current;
     if (!node) return;
@@ -54,7 +54,6 @@ export const CompanySummaryDashboard = () => {
       const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
       const imgData = canvas.toDataURL("image/png");
       
-      // 💡 Landscape configuration for jsPDF
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [canvas.width, canvas.height], compress: true });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save(`Weekly_Action_Plan_Week_${weekNumber}.pdf`);
@@ -65,7 +64,7 @@ export const CompanySummaryDashboard = () => {
     }
   };
 
-  // Send to Telegram
+  // --- Send to Telegram ---
   const handleSendToTelegram = async () => {
     const node = templateRef.current;
     if (!node) return;
@@ -89,33 +88,13 @@ export const CompanySummaryDashboard = () => {
     }
   };
 
-  return (
-<<<<<<< HEAD
-    <div className="w-full min-h-screen bg-white">
-      {/* Top Toolbar */}
-      <div className="p-4 border-b border-gray-200 bg-white flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <h1 className="text-sm font-bold text-gray-900">Company Summary Template View</h1>
-        <div className="flex items-center gap-3">
-          {/* year, month, week selects & export buttons */}
-          <Button onClick={handleExportPdf} className="bg-blue-600 text-white text-xs">Download PDF</Button>
-          <Button onClick={handleSendToTelegram} className="bg-sky-500 text-white text-xs">Send to Telegram</Button>
-        </div>
-      </div>
+  const summary = data?.summary;
+  const members = data?.members || [];
 
-      {/* Full Screen Template Render */}
-      <CompanySummaryTemplate
-        ref={templateRef}
-        summaryData={data}
-        year={year}
-        month={month}
-        weekNumber={weekNumber}
-        notes={notes}
-        onNotesChange={handleNotesChange}
-      />
-=======
-    <div className="p-6 w-full mx-auto">
-      {/* Header & Controls */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+  return (
+    <div className="p-6 w-full mx-auto space-y-6 bg-white min-h-screen">
+      {/* Header & Controls Bar */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight">
             Company Performance Summary
@@ -174,7 +153,7 @@ export const CompanySummaryDashboard = () => {
             </select>
           </div>
 
-          <div className="flex flex-col justify-end pt-4">
+          <div className="flex items-center gap-2 pt-4">
             <Button
               variant="outline"
               size="sm"
@@ -183,6 +162,20 @@ export const CompanySummaryDashboard = () => {
             >
               🔄 Refresh
             </Button>
+            <Button 
+              onClick={handleExportPdf} 
+              disabled={isExporting || loading} 
+              className="h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Download PDF
+            </Button>
+            <Button 
+              onClick={handleSendToTelegram} 
+              disabled={isExporting || loading} 
+              className="h-9 text-xs bg-sky-500 hover:bg-sky-600 text-white"
+            >
+              Send to Telegram
+            </Button>
           </div>
         </div>
       </div>
@@ -190,7 +183,7 @@ export const CompanySummaryDashboard = () => {
       {loading ? (
         <Card className="p-12 flex flex-col items-center justify-center gap-3 text-gray-400 text-xs">
           <RingLoader color="#22d3ee" size={40} />
-          <span className="font-medium">Loading...</span>
+          <span className="font-medium">Loading summary report...</span>
         </Card>
       ) : !summary ? (
         <Card className="p-12 text-center text-gray-400 text-xs">
@@ -199,7 +192,7 @@ export const CompanySummaryDashboard = () => {
       ) : (
         <div className="space-y-6">
           {/* Executive Overview Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 print:hidden">
             <Card className="p-4 bg-white border border-gray-200 shadow-sm">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                 Total Trainings
@@ -255,8 +248,21 @@ export const CompanySummaryDashboard = () => {
             </Card>
           </div>
 
+          {/* ========================================================= */}
+          {/* 📄 OFFICIAL A4 LANDSCAPE TEMPLATE RENDERED FOR EXPORT & VIEW */}
+          {/* ========================================================= */}
+          <CompanySummaryTemplate
+            ref={templateRef}
+            summaryData={data}
+            year={year}
+            month={month}
+            weekNumber={weekNumber}
+            notes={notes}
+            onNotesChange={handleNotesChange}
+          />
+
           {/* Member Contribution Breakdown Table */}
-          <Card className="bg-white border border-gray-200 overflow-hidden shadow-sm">
+          <Card className="bg-white border border-gray-200 overflow-hidden shadow-sm print:hidden">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
                 Staff Contribution Breakdown
@@ -271,15 +277,9 @@ export const CompanySummaryDashboard = () => {
                 <thead className="bg-gray-50 border-b border-gray-200 text-[10px] font-semibold text-gray-500 uppercase">
                   <tr>
                     <th className="py-2.5 px-4">Trainer</th>
-                    <th className="py-2.5 px-4 text-center">
-                      Training (Act / Tgt)
-                    </th>
-                    <th className="py-2.5 px-4 text-center">
-                      Onboarding (Act / Tgt)
-                    </th>
-                    <th className="py-2.5 px-4 text-center">
-                      Graduated (Act / Tgt)
-                    </th>
+                    <th className="py-2.5 px-4 text-center">Training (Act / Tgt)</th>
+                    <th className="py-2.5 px-4 text-center">Onboarding (Act / Tgt)</th>
+                    <th className="py-2.5 px-4 text-center">Graduated (Act / Tgt)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -287,48 +287,23 @@ export const CompanySummaryDashboard = () => {
                     members.map((m) => (
                       <tr key={m.user_id} className="hover:bg-gray-50/50">
                         <td className="py-3 px-4">
-                          <p className="font-semibold text-gray-800">
-                            {m.user_name}
-                          </p>
-                          <p className="text-[10px] text-gray-400">
-                            {m.user_email}
-                          </p>
+                          <p className="font-semibold text-gray-800">{m.user_name}</p>
+                          <p className="text-[10px] text-gray-400">{m.user_email}</p>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-blue-600">
-                            {m.actual_training}
-                          </span>
-                          <span className="text-gray-400">
-                            {" "}
-                            / {m.target_training}
-                          </span>
+                          <span className="font-bold text-blue-600">{m.actual_training}</span> / {m.target_training}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-emerald-600">
-                            {m.actual_onboarding}
-                          </span>
-                          <span className="text-gray-400">
-                            {" "}
-                            / {m.target_onboarding}
-                          </span>
+                          <span className="font-bold text-emerald-600">{m.actual_onboarding}</span> / {m.target_onboarding}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-purple-600">
-                            {m.actual_graduated}
-                          </span>
-                          <span className="text-gray-400">
-                            {" "}
-                            / {m.target_graduated}
-                          </span>
+                          <span className="font-bold text-purple-600">{m.actual_graduated}</span> / {m.target_graduated}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan={4}
-                        className="py-6 text-center text-gray-400"
-                      >
+                      <td colSpan={4} className="py-6 text-center text-gray-400">
                         No member contributions submitted for this period.
                       </td>
                     </tr>
@@ -339,7 +314,6 @@ export const CompanySummaryDashboard = () => {
           </Card>
         </div>
       )}
->>>>>>> 676415ed57c8a49ebdc6323bd005fe7dbbf27e9a
     </div>
   );
 };
