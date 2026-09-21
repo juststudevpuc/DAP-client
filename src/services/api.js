@@ -172,6 +172,10 @@ export const apiService = {
     const response = await apiClient.put(`/admin/users/${userId}/reset-password`, passwordData);
     return response.data;
     },
+    saveCompanySummaryNotes: async (payload) => {
+    const response = await apiClient.post('/company-summary/notes', payload);
+    return response.data;
+},
 
 };
 
