@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
+import Swal from "sweetalert2";
 
 export const WeeklyFooter = ({ planData, onComplete, currentWeekNumber }) => {
   const { register, handleSubmit, reset } = useForm({
@@ -24,7 +25,7 @@ export const WeeklyFooter = ({ planData, onComplete, currentWeekNumber }) => {
     }
   }, [planData, reset]);
 
-  const onSubmit = async (formData) => {
+ const onSubmit = async (formData) => {
     try {
       const payload = {
         ...formData,
@@ -34,9 +35,24 @@ export const WeeklyFooter = ({ planData, onComplete, currentWeekNumber }) => {
       if (onComplete) {
         await onComplete(payload);
       }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Reflections saved successfully.',
+        showConfirmButton: false,
+        timer: 1800
+      });
+
     } catch (error) {
       console.error("Failed to save reflections:", error);
-      alert("Error saving reflections.");
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Save Failed',
+        text: 'Error saving reflections. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
     }
   };
 

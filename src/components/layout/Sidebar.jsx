@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import useAuthStore from "../../store/useAuthStore";
 import { apiService } from "../../services/api";
+import Swal from "sweetalert2";
 
 export const Sidebar = ({ isOpen }) => {
   const location = useLocation();
@@ -14,6 +15,20 @@ export const Sidebar = ({ isOpen }) => {
   const isSuperAdmin = user?.role === "super_admin";
 
   const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out of your DAP session.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, log out",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
     try {
       await apiService.logout();
     } catch (error) {
@@ -39,8 +54,12 @@ export const Sidebar = ({ isOpen }) => {
             C
           </div>
           <div>
-            <h1 className="text-sm font-bold text-gray-900 tracking-tight">CheckinMe</h1>
-            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Workspace</p>
+            <h1 className="text-sm font-bold text-gray-900 tracking-tight">
+              SOLVE
+            </h1>
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+              Workspace
+            </p>
           </div>
         </div>
       </div>
@@ -62,7 +81,16 @@ export const Sidebar = ({ isOpen }) => {
           {isActive("/dashboard") && (
             <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
           )}
-          <svg className={`w-4 h-4 ${isActive("/dashboard") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className={`w-4 h-4 ${isActive("/dashboard") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="3" width="7" height="9"></rect>
             <rect x="14" y="3" width="7" height="5"></rect>
             <rect x="14" y="12" width="7" height="9"></rect>
@@ -82,7 +110,16 @@ export const Sidebar = ({ isOpen }) => {
           {isActive("/weekly-plan") && (
             <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
           )}
-          <svg className={`w-4 h-4 ${isActive("/weekly-plan") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className={`w-4 h-4 ${isActive("/weekly-plan") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -109,7 +146,16 @@ export const Sidebar = ({ isOpen }) => {
               {isActive("/admin/team-overview") && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
               )}
-              <svg className={`w-4 h-4 ${isActive("/admin/team-overview") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                className={`w-4 h-4 ${isActive("/admin/team-overview") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -129,7 +175,16 @@ export const Sidebar = ({ isOpen }) => {
               {isActive("/admin/company-summary") && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
               )}
-              <svg className={`w-4 h-4 ${isActive("/admin/company-summary") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                className={`w-4 h-4 ${isActive("/admin/company-summary") ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="18" y1="20" x2="18" y2="10"></line>
                 <line x1="12" y1="20" x2="12" y2="4"></line>
                 <line x1="6" y1="20" x2="6" y2="14"></line>
@@ -157,7 +212,16 @@ export const Sidebar = ({ isOpen }) => {
               {isActive("/super-admin/manage-users") && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-purple-600 rounded-r-full" />
               )}
-              <svg className={`w-4 h-4 ${isActive("/super-admin/manage-users") ? "text-purple-600" : "text-gray-400 group-hover:text-purple-600"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                className={`w-4 h-4 ${isActive("/super-admin/manage-users") ? "text-purple-600" : "text-gray-400 group-hover:text-purple-600"}`}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               </svg>
               Manage Roles & Staff
@@ -174,7 +238,9 @@ export const Sidebar = ({ isOpen }) => {
           </div>
           <div className="overflow-hidden flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "Workspace User"}</p>
+              <p className="text-xs font-semibold text-gray-800 truncate">
+                {user?.name || "Workspace User"}
+              </p>
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span
@@ -182,13 +248,15 @@ export const Sidebar = ({ isOpen }) => {
                   user?.role === "super_admin"
                     ? "bg-purple-100 text-purple-700 border border-purple-200"
                     : user?.role === "admin"
-                    ? "bg-blue-100 text-blue-700 border border-blue-200"
-                    : "bg-gray-100 text-gray-600 border border-gray-200"
+                      ? "bg-blue-100 text-blue-700 border border-blue-200"
+                      : "bg-gray-100 text-gray-600 border border-gray-200"
                 }`}
               >
                 {user?.role ? user.role.replace("_", " ") : "member"}
               </span>
-              <p className="text-[10px] text-gray-400 truncate">{user?.email || "Connected"}</p>
+              <p className="text-[10px] text-gray-400 truncate">
+                {user?.email || "Connected"}
+              </p>
             </div>
           </div>
         </div>
@@ -199,7 +267,16 @@ export const Sidebar = ({ isOpen }) => {
           onClick={handleLogout}
           className="w-full h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 justify-start gap-2 font-medium"
         >
-          <svg className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="w-3.5 h-3.5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>

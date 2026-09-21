@@ -3,6 +3,8 @@ import { apiService } from "../../services/api";
 import useAuthStore from "../../store/useAuthStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Swal from "sweetalert2";
+import { RingLoader } from "react-spinners";
 
 export const ManageUsersPage = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -19,7 +21,13 @@ export const ManageUsersPage = () => {
       setUsers(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error("Failed to load users", error);
-      alert("❌ Failed to load staff directory.");
+
+      Swal.fire({
+        icon: "error",
+        title: "Load Failed",
+        text: "Failed to load staff directory. Please check your connection.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setLoading(false);
     }
@@ -29,9 +37,15 @@ export const ManageUsersPage = () => {
     fetchUsers();
   }, []);
 
+  // --- ROLE CHANGE HANDLER ---
   const handleRoleChange = async (userId, newRole) => {
     if (userId === currentUser?.id && newRole !== "super_admin") {
-      alert("⚠️ You cannot revoke your own Super Admin role.");
+      Swal.fire({
+        icon: "warning",
+        title: "Action Denied",
+        text: "You cannot revoke your own Super Admin role.",
+        confirmButtonColor: "#f59e0b",
+      });
       return;
     }
 
@@ -39,12 +53,24 @@ export const ManageUsersPage = () => {
     try {
       await apiService.updateUserRole(userId, newRole);
       setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
       );
-      alert("✅ Role updated successfully!");
+
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: "Role updated successfully!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
     } catch (error) {
       console.error("Failed to update role", error);
-      alert(error.response?.data?.message || "❌ Failed to change role.");
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: error.response?.data?.message || "Failed to change role.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -53,11 +79,26 @@ export const ManageUsersPage = () => {
   // --- DELETE USER HANDLER ---
   const handleDeleteUser = async (userId, userName) => {
     if (userId === currentUser?.id) {
-      alert("⚠️ You cannot delete your own account while logged in.");
+      Swal.fire({
+        icon: "warning",
+        title: "Action Denied",
+        text: "You cannot delete your own account while logged in.",
+        confirmButtonColor: "#f59e0b",
+      });
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Are you sure you want to delete user "${userName}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete user!",
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -65,10 +106,22 @@ export const ManageUsersPage = () => {
     try {
       await apiService.deleteUser(userId);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
-      alert("✅ User deleted successfully!");
+
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "User deleted successfully!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
     } catch (error) {
       console.error("Failed to delete user", error);
-      alert(error.response?.data?.message || "❌ Failed to delete user.");
+      Swal.fire({
+        icon: "error",
+        title: "Delete Failed",
+        text: error.response?.data?.message || "Failed to delete user.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -77,7 +130,7 @@ export const ManageUsersPage = () => {
   const filteredUsers = users.filter(
     (u) =>
       u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -123,14 +176,21 @@ export const ManageUsersPage = () => {
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Current Role</th>
                 <th className="py-3 px-4 text-center">Change Permission</th>
-                <th className="py-3 px-4 text-center">Actions</th> {/* 👈 Added Actions Column */}
+                <th className="py-3 px-4 text-center">Actions</th>{" "}
+                {/* 👈 Added Actions Column */}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-400">
-                    Loading users directory...
+                  <td colSpan={5} className="py-12">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <RingLoader color="#22d3ee" size={40} />
+
+                      <span className="text-gray-400 font-medium text-sm">
+                        Loading users directory...
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
@@ -143,7 +203,10 @@ export const ManageUsersPage = () => {
                 filteredUsers.map((item) => {
                   const isCurrent = item.id === currentUser?.id;
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50/50 transition">
+                    <tr
+                      key={item.id}
+                      className="hover:bg-gray-50/50 transition"
+                    >
                       <td className="py-3 px-4 font-medium text-gray-800 flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-xs">
                           {item.name?.charAt(0).toUpperCase() || "U"}
@@ -164,8 +227,8 @@ export const ManageUsersPage = () => {
                             item.role === "super_admin"
                               ? "bg-purple-100 text-purple-700 border border-purple-200"
                               : item.role === "admin"
-                              ? "bg-blue-100 text-blue-700 border border-blue-200"
-                              : "bg-gray-100 text-gray-600 border border-gray-200"
+                                ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                : "bg-gray-100 text-gray-600 border border-gray-200"
                           }`}
                         >
                           {item.role ? item.role.replace("_", " ") : "user"}
@@ -175,12 +238,16 @@ export const ManageUsersPage = () => {
                         <select
                           value={item.role || "user"}
                           disabled={updatingId === item.id || isCurrent}
-                          onChange={(e) => handleRoleChange(item.id, e.target.value)}
+                          onChange={(e) =>
+                            handleRoleChange(item.id, e.target.value)
+                          }
                           className="h-8 text-xs border border-gray-300 rounded px-2 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
                           <option value="user">User (Standard)</option>
                           <option value="admin">Admin (Team Lead)</option>
-                          <option value="super_admin">Super Admin (Full Access)</option>
+                          <option value="super_admin">
+                            Super Admin (Full Access)
+                          </option>
                         </select>
                       </td>
                       <td className="py-3 px-4 text-center">

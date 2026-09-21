@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
+import Swal from 'sweetalert2';
+import { RingLoader } from 'react-spinners';
 
 export const TelegramConnectModal = ({ isOpen, onClose, onLinked }) => {
   const [loading, setLoading] = useState(false);
   const [telegramUrl, setTelegramUrl] = useState('');
-  const [error, setError] = useState('');
   const [isLinked, setIsLinked] = useState(false);
+  // Removed local error state since SweetAlert handles it now
 
   useEffect(() => {
     if (isOpen) {
@@ -17,7 +19,6 @@ export const TelegramConnectModal = ({ isOpen, onClose, onLinked }) => {
   // Fetch the deep link URL from your Laravel backend
   const fetchTelegramLink = async () => {
     setLoading(true);
-    setError('');
     
     try {
       const token = localStorage.getItem('token');
@@ -29,10 +30,22 @@ export const TelegramConnectModal = ({ isOpen, onClose, onLinked }) => {
       setIsLinked(response.data.is_linked);
       
       if (response.data.is_linked) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Linked!',
+          text: 'Your Telegram account is successfully connected.',
+          showConfirmButton: false,
+          timer: 1500
+        });
         onLinked(); // Notify parent if already linked
       }
     } catch (err) {
-      setError('Could not connect to Telegram service.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Connection Failed',
+        text: 'Could not connect to Telegram service. Please check your connection.',
+        confirmButtonColor: '#ef4444'
+      });
     } finally {
       setLoading(false);
     }
@@ -48,7 +61,8 @@ export const TelegramConnectModal = ({ isOpen, onClose, onLinked }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl">
+      {/* Added animate-in zoom for consistency with other modals */}
+      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
         <h3 className="text-xl font-bold mb-2">Connect Telegram</h3>
         
         {isLinked ? (
@@ -63,28 +77,42 @@ export const TelegramConnectModal = ({ isOpen, onClose, onLinked }) => {
               To send reports directly to your phone, please link your Telegram account.
             </p>
             
-            {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
-            
             <div className="space-y-3">
               <Button 
                 onClick={handleConnect} 
                 disabled={loading || !telegramUrl}
-                className="w-full bg-sky-500 hover:bg-sky-600"
+                className="w-full bg-sky-500 hover:bg-sky-600 flex items-center justify-center gap-2"
               >
-                {loading ? 'Loading...' : 'Open Telegram & Start'}
+                {!telegramUrl && loading ? (
+                  <>
+                    <RingLoader color="#ffffff" size={16} />
+                    Generating Link...
+                  </>
+                ) : (
+                  'Open Telegram & Start'
+                )}
               </Button>
               
               <Button 
                 variant="outline" 
                 onClick={fetchTelegramLink}
-                className="w-full text-xs"
+                disabled={loading}
+                className="w-full text-xs flex items-center justify-center gap-2"
               >
-                I already clicked Start (Refresh)
+                {telegramUrl && loading ? (
+                  <>
+                    <RingLoader color="#3b82f6" size={16} />
+                    Checking status...
+                  </>
+                ) : (
+                  'I already clicked Start (Refresh)'
+                )}
               </Button>
               
               <Button 
                 variant="ghost" 
                 onClick={onClose}
+                disabled={loading}
                 className="w-full text-gray-500"
               >
                 Cancel

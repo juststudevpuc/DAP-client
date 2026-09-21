@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import html2canvas from 'html2canvas-pro';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export const useTelegramExport = () => {
   const [isSendingTelegram, setIsSendingTelegram] = useState(false);
@@ -12,7 +13,12 @@ export const useTelegramExport = () => {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert("❌ You are not fully logged in. Please sign out and sign back in.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Error',
+        text: 'You are not fully logged in. Please sign out and sign back in.',
+        confirmButtonColor: '#ef4444'
+      });
       return;
     }
 
@@ -66,10 +72,10 @@ export const useTelegramExport = () => {
 
       // 5. Prepare form data
       const formData = new FormData();
-      const fileName = type === 'daily' 
-        ? `Daily_Action_Plan_Week_${planData?.week_number || "1"}.png` 
+      const fileName = type === 'daily'
+        ? `Daily_Action_Plan_Week_${planData?.week_number || "1"}.png`
         : `Weekly_Action_Plan_Week_${planData?.week_number || "1"}.png`;
-        
+
       formData.append("image", blob, fileName);
       formData.append("type", type);
       formData.append("week_number", planData?.week_number || 1);
@@ -87,12 +93,18 @@ export const useTelegramExport = () => {
       );
 
       if (response.data?.success || response.status === 200) {
-        alert(`✅ Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to your Telegram!`);
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to your Telegram!`,
+          showConfirmButton: false,
+          timer: 1500
+        });
       }
 
     } catch (error) {
       console.error("Failed to send to Telegram", error);
-      
+
       // Print the exact Laravel validation errors in DevTools console
       if (error.response?.data?.errors) {
         console.error("Backend Validation Details:", error.response.data.errors);
@@ -101,12 +113,27 @@ export const useTelegramExport = () => {
       if (error.response?.status === 403 && error.response?.data?.needs_linking) {
         setShowConnectModal(true);
       } else if (error.response?.status === 401) {
-        alert("❌ Your session has expired. Please sign out and log back in.");
+        Swal.fire({
+          icon: 'error',
+          title: 'Session Expired',
+          text: 'Your session has expired. Please sign out and log back in.',
+          confirmButtonColor: '#ef4444'
+        });
       } else if (error.response?.status === 422) {
         const serverMsg = error.response?.data?.message || "Image validation failed.";
-        alert(`❌ ${serverMsg}`);
+        Swal.fire({
+          icon: 'error',
+          title: 'Validation Failed',
+          text: serverMsg,
+          confirmButtonColor: '#ef4444'
+        });
       } else {
-        alert("❌ Failed to send to Telegram. Please try again.");
+        Swal.fire({
+          icon: 'error',
+          title: 'Send Failed',
+          text: 'Failed to send to Telegram. Please try again.',
+          confirmButtonColor: '#ef4444'
+        });
       }
     } finally {
       setIsSendingTelegram(false);

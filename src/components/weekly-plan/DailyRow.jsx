@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { apiService } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import Swal from "sweetalert2";
 
 // 1. Updated Field: 3x4 Numpad with 2-digit limit and Delete
 const Field = ({ label, name, register, watch, setValue }) => {
@@ -12,7 +13,8 @@ const Field = ({ label, name, register, watch, setValue }) => {
 
   // Combine numbers together, limit to 2 digits max
   const handleDigitClick = (digit) => {
-    const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
+    const prevStr =
+      !currentValue || currentValue === 0 ? "" : String(currentValue);
     if (prevStr.length >= 2) return;
 
     const newNumber = Number(prevStr + digit);
@@ -21,7 +23,8 @@ const Field = ({ label, name, register, watch, setValue }) => {
 
   // Delete the last number (Backspace)
   const handleDelete = () => {
-    const prevStr = !currentValue || currentValue === 0 ? "" : String(currentValue);
+    const prevStr =
+      !currentValue || currentValue === 0 ? "" : String(currentValue);
     if (prevStr.length <= 1) {
       setValue(name, 0, { shouldDirty: true });
     } else {
@@ -138,7 +141,12 @@ export const DailyRow = ({ dayData }) => {
   const onSubmit = async (formData) => {
     // Guard against undefined ID calls
     if (!dayData?.id || dayData.id === "undefined") {
-      alert("⚠️ This week is not initialized in the database yet. Click 'Save Summary' at the bottom first to generate IDs.");
+      Swal.fire({
+        icon: "warning",
+        title: "Not Initialized",
+        text: "This week is not initialized in the database yet. Click 'Save Summary' at the bottom first to generate IDs.",
+        confirmButtonColor: "#3b82f6", // Tailwind blue-500
+      });
       return;
     }
 
@@ -153,11 +161,25 @@ export const DailyRow = ({ dayData }) => {
 
     try {
       await apiService.updateDailyMetric(dayData.id, cleanedData);
-      alert(`✅ ${dayData.day_name} saved successfully!`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: `${dayData.day_name} saved successfully!`,
+        showConfirmButton: false,
+        timer: 1800,
+      });
+
       reset(formData);
     } catch (error) {
       console.error(`Failed to save:`, error);
-      alert("❌ Error saving daily metric data.");
+
+      Swal.fire({
+        icon: "error",
+        title: "Save Failed",
+        text: "Error saving daily metric data.",
+        confirmButtonColor: "#ef4444", // Tailwind red-500
+      });
     }
   };
 

@@ -17,10 +17,14 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 export function RegisterForm({ className, ...props }) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -63,9 +67,11 @@ export function RegisterForm({ className, ...props }) {
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0 shadow-sm border-gray-100">
         <CardContent className="grid p-0 md:grid-cols-2">
-          
           {/* Left Side: Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8 flex flex-col justify-center">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="p-6 md:p-8 flex flex-col justify-center"
+          >
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center mb-4">
                 <h1 className="text-2xl font-bold">Create an Account</h1>
@@ -73,7 +79,7 @@ export function RegisterForm({ className, ...props }) {
                   Sign up for CheckinMe
                 </p>
               </div>
-              
+
               {/* Name */}
               <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
@@ -82,10 +88,16 @@ export function RegisterForm({ className, ...props }) {
                   type="text"
                   placeholder="e.g Tep Panhasak"
                   {...register("name")}
-                  className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={
+                    errors.name
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.name && (
-                  <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.name.message}
+                  </p>
                 )}
               </Field>
 
@@ -97,38 +109,77 @@ export function RegisterForm({ className, ...props }) {
                   type="email"
                   placeholder="name@example.com"
                   {...register("email")}
-                  className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={
+                    errors.email
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.email && (
-                  <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.email.message}
+                  </p>
                 )}
               </Field>
-              
+
+              {/* Password */}
               {/* Password */}
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  {...register("password")}
-                  className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
+                    className={`pr-10 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.password && (
-                  <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.password.message}
+                  </p>
                 )}
               </Field>
 
               {/* Confirm Password */}
               <Field>
-                <FieldLabel htmlFor="password_confirmation">Confirm Password</FieldLabel>
-                <Input 
-                  id="password_confirmation" 
-                  type="password" 
-                  {...register("password_confirmation")}
-                  className={errors.password_confirmation ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
+                <FieldLabel htmlFor="password_confirmation">
+                  Confirm Password
+                </FieldLabel>
+                <div className="relative">
+                  <Input
+                    id="password_confirmation"
+                    type={showConfirmPassword ? "text" : "password"}
+                    {...register("password_confirmation")}
+                    className={`pr-10 ${errors.password_confirmation ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.password_confirmation && (
-                  <p className="text-xs text-red-500 mt-1">{errors.password_confirmation.message}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.password_confirmation.message}
+                  </p>
                 )}
               </Field>
 
@@ -138,38 +189,51 @@ export function RegisterForm({ className, ...props }) {
                   {errors.root.message}
                 </div>
               )}
-              
+
               <Field className="mt-2">
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Creating account..." : "Sign Up"}
                 </Button>
               </Field>
-              
+
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card my-4">
                 Or
               </FieldSeparator>
-              
+
               <FieldDescription className="text-center mt-2">
-                Already have an account? <a href="/login" className="underline text-blue-600">Sign in</a>
+                Already have an account?{" "}
+                <a href="/login" className="underline text-blue-600">
+                  Sign in
+                </a>
               </FieldDescription>
             </FieldGroup>
           </form>
-          
+
           {/* Right Side: Image Panel */}
           <div className="relative hidden bg-muted md:block flex justify-center">
-           <img
+            <img
               src="/log2.png"
               alt="Dashboard Preview"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>
-          
         </CardContent>
       </Card>
-      
+
       <FieldDescription className="px-6 text-center text-xs text-muted-foreground">
-        By clicking continue, you agree to our <a href="#" className="underline">Terms of Service</a>{" "}
-        and <a href="#" className="underline">Privacy Policy</a>.
+        By clicking continue, you agree to our{" "}
+        <a href="#" className="underline">
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a href="#" className="underline">
+          Privacy Policy
+        </a>
+        .
       </FieldDescription>
     </div>
   );

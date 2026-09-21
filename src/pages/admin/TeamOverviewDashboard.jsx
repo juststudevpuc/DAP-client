@@ -5,6 +5,7 @@ import { TeamFilters } from "../../components/admin/team/TeamFilters";
 import { TeamMemberBanner } from "../../components/admin/team/TeamMemberBanner";
 import { TeamPlanMetrics } from "../../components/admin/team/TeamPlanMetrics";
 import { TeamRetrospective } from "../../components/admin/team/TeamRetrospective";
+import { RingLoader } from "react-spinners";
 
 export const TeamOverviewDashboard = () => {
   const [members, setMembers] = useState([]);
@@ -80,8 +81,9 @@ export const TeamOverviewDashboard = () => {
       />
 
       {loading ? (
-        <Card className="p-16 text-center text-gray-400 text-xs shadow-xs w-full">
-          Loading metrics data...
+        <Card className="p-16 flex flex-col items-center justify-center gap-3 text-gray-400 text-xs shadow-xs w-full">
+          <RingLoader color="#22d3ee" size={40} />
+          <span className="font-medium">Loading metrics data...</span>
         </Card>
       ) : !planData ? (
         <Card className="p-16 text-center text-gray-400 text-xs shadow-xs w-full">

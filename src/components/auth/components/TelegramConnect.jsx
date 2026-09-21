@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
+import { RingLoader } from 'react-spinners';
 
 const TelegramConnect = () => {
   const [loading, setLoading] = useState(false);
   const [isLinked, setIsLinked] = useState(false);
   const [telegramUrl, setTelegramUrl] = useState('');
-  const [error, setError] = useState('');
+  // Removed local 'error' state as SweetAlert handles it now
 
   // 1. Fetch link & current status when component mounts
   const fetchTelegramLink = async () => {
     setLoading(true);
-    setError('');
 
     try {
       // Assumes your Axios instance attaches Bearer token automatically
@@ -28,7 +29,12 @@ const TelegramConnect = () => {
       setIsLinked(response.data.is_linked);
     } catch (err) {
       console.error('Failed to generate Telegram link:', err);
-      setError('Could not connect to Telegram service. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Connection Failed',
+        text: 'Could not connect to Telegram service. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
     } finally {
       setLoading(false);
     }
@@ -60,21 +66,17 @@ const TelegramConnect = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
-          {error}
-        </div>
-      )}
-
       {isLinked ? (
         <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
           <div className="flex items-center space-x-2 text-emerald-700 font-medium text-sm">
-            <span> Connected</span>
+            <span>✅ Connected</span>
           </div>
           <button
             onClick={fetchTelegramLink}
-            className="text-xs text-emerald-600 hover:text-emerald-800 underline"
+            disabled={loading}
+            className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 underline disabled:opacity-50"
           >
+            {loading && <RingLoader color="#059669" size={12} />}
             Refresh Status
           </button>
         </div>
@@ -87,17 +89,32 @@ const TelegramConnect = () => {
           <button
             onClick={handleConnect}
             disabled={loading || !telegramUrl}
-            className="w-full inline-flex justify-center items-center px-4 py-2.5 bg-sky-500 hover:bg-sky-600 disabled:bg-gray-300 text-white font-medium text-sm rounded-xl transition shadow-sm"
+            className="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 disabled:bg-gray-300 text-white font-medium text-sm rounded-xl transition shadow-sm"
           >
-            {loading ? 'Generating Link...' : 'Connect to Telegram'}
+            {!telegramUrl && loading ? (
+              <>
+                <RingLoader color="#ffffff" size={16} />
+                Generating Link...
+              </>
+            ) : (
+              'Connect to Telegram'
+            )}
           </button>
 
           <button
             type="button"
             onClick={fetchTelegramLink}
-            className="w-full text-center text-xs text-gray-500 hover:text-gray-700 mt-2"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 text-center text-xs text-gray-500 hover:text-gray-700 mt-2 disabled:opacity-50"
           >
-            I already clicked Start (Check Status)
+            {telegramUrl && loading ? (
+              <>
+                <RingLoader color="#6b7280" size={12} />
+                Checking Status...
+              </>
+            ) : (
+              'I already clicked Start (Check Status)'
+            )}
           </button>
         </div>
       )}

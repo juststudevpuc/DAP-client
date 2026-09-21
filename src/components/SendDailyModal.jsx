@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import Swal from "sweetalert2";
+import { RingLoader } from "react-spinners";
 
 export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
   const [selectedDays, setSelectedDays] = useState({
@@ -10,6 +12,7 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
     Fri: false,
     Sat: false,
   });
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -17,19 +20,58 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
     setSelectedDays((prev) => ({ ...prev, [day]: !prev[day] }));
   };
 
-  const handleConfirm = () => {
-    const daysArray = Object.keys(selectedDays).filter((day) => selectedDays[day]);
-    onSend(daysArray);
-    onClose();
+  const handleConfirm = async () => {
+    const daysArray = Object.keys(selectedDays).filter(
+      (day) => selectedDays[day],
+    );
+
+    if (daysArray.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Days Selected",
+        text: "Please select at least one day to send.",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSend(daysArray);
+
+      Swal.fire({
+        icon: "success",
+        title: "Sent!",
+        text: "Daily metrics sent to Telegram successfully.",
+        showConfirmButton: false,
+        timer: 1800,
+      });
+
+      onClose();
+    } catch (error) {
+      console.error("Failed to send daily telegram image", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Send Failed",
+        text: "Failed to send images to Telegram. Please try again.",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in-95 duration-150">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Select Days to Send</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            Select Days to Send
+          </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Choose which days you want to snapshot and send to Telegram. Multi-selection is supported!
+            Choose which days you want to snapshot and send to Telegram.
+            Multi-selection is supported!
           </p>
         </div>
 
@@ -47,7 +89,8 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
                 type="checkbox"
                 checked={selectedDays[day]}
                 onChange={() => toggleDay(day)}
-                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                disabled={loading}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50"
               />
               <span className="text-xs">📅 {day}</span>
             </label>
@@ -55,15 +98,30 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onClose} 
+            disabled={loading}
+            className="text-xs"
+          >
             Cancel
           </Button>
+          
           <Button
             size="sm"
             onClick={handleConfirm}
-            className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4"
+            disabled={loading}
+            className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 flex items-center gap-2"
           >
-            🚀 Send to Telegram
+            {loading ? (
+              <>
+                <RingLoader color="#ffffff" size={16} />
+                Sending...
+              </>
+            ) : (
+              "🚀 Send to Telegram"
+            )}
           </Button>
         </div>
       </div>

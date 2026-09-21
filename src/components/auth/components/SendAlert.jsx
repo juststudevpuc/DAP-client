@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
+import { RingLoader } from 'react-spinners';
 
 const SendAlert = () => {
   const [users, setUsers] = useState([]);
@@ -7,7 +9,7 @@ const SendAlert = () => {
   const [message, setMessage] = useState('');
   
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: '', text: '' });
+  // Removed local 'status' state since SweetAlert handles feedback now
 
   // 1. Fetch connected users on component mount
   useEffect(() => {
@@ -26,7 +28,12 @@ const SendAlert = () => {
         }
       } catch (error) {
         console.error('Failed to fetch users:', error);
-        setStatus({ type: 'error', text: 'Could not load connected users.' });
+        Swal.fire({
+          icon: 'error',
+          title: 'Load Failed',
+          text: 'Could not load connected users. Please check your connection.',
+          confirmButtonColor: '#ef4444'
+        });
       }
     };
 
@@ -37,7 +44,6 @@ const SendAlert = () => {
   const handleSendAlert = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ type: '', text: '' });
 
     try {
       const token = localStorage.getItem('token');
@@ -57,14 +63,22 @@ const SendAlert = () => {
       );
 
       if (response.data.success) {
-        setStatus({ type: 'success', text: 'Alert sent successfully!' });
+        Swal.fire({
+          icon: 'success',
+          title: 'Sent!',
+          text: 'Alert sent successfully!',
+          showConfirmButton: false,
+          timer: 1500
+        });
         setMessage(''); // Clear the message input
       }
     } catch (error) {
       console.error('Failed to send alert:', error);
-      setStatus({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to send alert. Please try again.' 
+      Swal.fire({
+        icon: 'error',
+        title: 'Send Failed',
+        text: error.response?.data?.message || 'Failed to send alert. Please try again.',
+        confirmButtonColor: '#ef4444'
       });
     } finally {
       setLoading(false);
@@ -85,12 +99,6 @@ const SendAlert = () => {
         </div>
       </div>
 
-      {status.text && (
-        <div className={`mb-4 p-3 text-sm rounded-lg ${status.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-          {status.text}
-        </div>
-      )}
-
       <form onSubmit={handleSendAlert} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
@@ -98,7 +106,8 @@ const SendAlert = () => {
             value={selectedUserId} 
             onChange={(e) => setSelectedUserId(e.target.value)}
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+            disabled={loading}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none disabled:opacity-50"
           >
             <option value="" disabled>-- Choose a connected user --</option>
             {users.map((user) => (
@@ -119,17 +128,25 @@ const SendAlert = () => {
             onChange={(e) => setMessage(e.target.value)}
             required
             rows="3"
+            disabled={loading}
             placeholder="🚨 <b>New Order!</b> Check the dashboard."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none resize-none disabled:opacity-50"
           ></textarea>
         </div>
 
         <button
           type="submit"
           disabled={loading || !selectedUserId || !message}
-          className="w-full inline-flex justify-center items-center px-4 py-2.5 bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-medium text-sm rounded-xl transition shadow-sm"
+          className="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-medium text-sm rounded-xl transition shadow-sm"
         >
-          {loading ? 'Sending...' : 'Send Alert'}
+          {loading ? (
+            <>
+              <RingLoader color="#ffffff" size={16} />
+              Sending...
+            </>
+          ) : (
+            'Send Alert'
+          )}
         </button>
       </form>
     </div>

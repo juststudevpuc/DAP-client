@@ -1,5 +1,6 @@
 import axios from 'axios';
 import useAuthStore from '../store/useAuthStore';
+import Swal from 'sweetalert2';
 
 // 1. Configure the base connection
 const apiClient = axios.create({
@@ -29,8 +30,25 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Token is invalid or expired, clear it out
-            useAuthStore.getState().logout();
+
+            // Prevent multiple alerts if several requests fail at the exact same time
+            if (!Swal.isVisible()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Session Expired',
+                    text: 'Your session has expired. Please log in again to continue.',
+                    confirmButtonText: 'Go to Login',
+                    confirmButtonColor: '#3b82f6',
+                    allowOutsideClick: false, // Force them to click the button
+                    allowEscapeKey: false
+                }).then(() => {
+                    // Clear the state
+                    useAuthStore.getState().logout();
+
+                    // Force redirect to login page (safest method from outside React Router)
+                    window.location.href = '/login';
+                });
+            }
         }
         return Promise.reject(error);
     }
@@ -143,7 +161,13 @@ export const apiService = {
     deleteUser: async (userId) => {
         const response = await apiClient.delete(`/super-admin/users/${userId}`);
         return response.data;
-    }
+    },
+
+    // --- Public Endpoints ---
+    getPublicStats: async () => {
+        const response = await apiClient.get('/public/stats');
+        return response.data;
+    },
 
 };
 
