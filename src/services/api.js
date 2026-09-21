@@ -168,6 +168,10 @@ export const apiService = {
         const response = await apiClient.get('/public/stats');
         return response.data;
     },
+    resetUserPasswordByAdmin: async (userId, passwordData) => {
+    const response = await apiClient.put(`/admin/users/${userId}/reset-password`, passwordData);
+    return response.data;
+    },
 
 };
 

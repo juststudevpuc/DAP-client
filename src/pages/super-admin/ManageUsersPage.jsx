@@ -11,8 +11,14 @@ export const ManageUsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null); // 👈 Track deleting user
+  const [deletingId, setDeletingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // 🔑 State for Password Reset Modal
+  const [resetModalUser, setResetModalUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -21,7 +27,6 @@ export const ManageUsersPage = () => {
       setUsers(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error("Failed to load users", error);
-
       Swal.fire({
         icon: "error",
         title: "Load Failed",
@@ -76,6 +81,59 @@ export const ManageUsersPage = () => {
     }
   };
 
+  // --- RESET PASSWORD HANDLER ---
+  const handlePasswordResetSubmit = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      Swal.fire({
+        icon: "error",
+        title: "Mismatch",
+        text: "Passwords do not match. Please re-enter.",
+        confirmButtonColor: "#ef4444",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Swal.fire({
+        icon: "warning",
+        title: "Weak Password",
+        text: "Password must be at least 8 characters long.",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const response = await apiService.resetUserPasswordByAdmin(resetModalUser.id, {
+        password: newPassword,
+        password_confirmation: confirmPassword,
+      });
+
+      Swal.fire({
+        icon: "success",
+        title: "Password Reset!",
+        text: response.message || `Password successfully updated for ${resetModalUser.name}.`,
+        confirmButtonColor: "#2563eb",
+      });
+
+      setResetModalUser(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error("Failed to reset password", error);
+      Swal.fire({
+        icon: "error",
+        title: "Reset Failed",
+        text: error.response?.data?.message || "Failed to reset user password.",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   // --- DELETE USER HANDLER ---
   const handleDeleteUser = async (userId, userName) => {
     if (userId === currentUser?.id) {
@@ -98,9 +156,7 @@ export const ManageUsersPage = () => {
       confirmButtonText: "Yes, delete user!",
     });
 
-    if (!result.isConfirmed) {
-      return;
-    }
+    if (!result.isConfirmed) return;
 
     setDeletingId(userId);
     try {
@@ -142,7 +198,7 @@ export const ManageUsersPage = () => {
             Staff & Role Management
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Assign workspace roles, permission levels, or remove team members.
+            Assign workspace roles, permission levels, reset passwords, or remove team members.
           </p>
         </div>
 
@@ -176,8 +232,7 @@ export const ManageUsersPage = () => {
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Current Role</th>
                 <th className="py-3 px-4 text-center">Change Permission</th>
-                <th className="py-3 px-4 text-center">Actions</th>{" "}
-                {/* 👈 Added Actions Column */}
+                <th className="py-3 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
@@ -186,7 +241,6 @@ export const ManageUsersPage = () => {
                   <td colSpan={5} className="py-12">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <RingLoader color="#22d3ee" size={40} />
-
                       <span className="text-gray-400 font-medium text-sm">
                         Loading users directory...
                       </span>
@@ -203,10 +257,7 @@ export const ManageUsersPage = () => {
                 filteredUsers.map((item) => {
                   const isCurrent = item.id === currentUser?.id;
                   return (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-gray-50/50 transition"
-                    >
+                    <tr key={item.id} className="hover:bg-gray-50/50 transition">
                       <td className="py-3 px-4 font-medium text-gray-800 flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-xs">
                           {item.name?.charAt(0).toUpperCase() || "U"}
@@ -227,8 +278,8 @@ export const ManageUsersPage = () => {
                             item.role === "super_admin"
                               ? "bg-purple-100 text-purple-700 border border-purple-200"
                               : item.role === "admin"
-                                ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                : "bg-gray-100 text-gray-600 border border-gray-200"
+                              ? "bg-blue-100 text-blue-700 border border-blue-200"
+                              : "bg-gray-100 text-gray-600 border border-gray-200"
                           }`}
                         >
                           {item.role ? item.role.replace("_", " ") : "user"}
@@ -250,8 +301,18 @@ export const ManageUsersPage = () => {
                           </option>
                         </select>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        {/* 👈 Delete Button with protection check */}
+                      <td className="py-3 px-4 text-center space-x-2">
+                        {/* 🔑 Reset Password Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setResetModalUser(item)}
+                          className="h-7 px-2.5 text-[11px] border-blue-300 text-blue-600 hover:bg-blue-50"
+                        >
+                          🔑 Reset Pass
+                        </Button>
+
+                        {/* 🗑️ Delete Button */}
                         <Button
                           variant="destructive"
                           size="sm"
@@ -270,6 +331,69 @@ export const ManageUsersPage = () => {
           </table>
         </div>
       </Card>
+
+      {/* 🔑 RESET PASSWORD MODAL POPUP */}
+      {resetModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                Reset Password for <span className="text-blue-600">{resetModalUser.name}</span>
+              </h3>
+              <button 
+                onClick={() => setResetModalUser(null)} 
+                className="text-gray-400 hover:text-gray-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordResetSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  placeholder="At least 8 characters"
+                  className="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Re-enter new password"
+                  className="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setResetModalUser(null)}
+                  disabled={isResetting}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResetting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-sm"
+                >
+                  {isResetting ? "Updating..." : "Save New Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
