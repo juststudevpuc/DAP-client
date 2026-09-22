@@ -40,8 +40,20 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
   const onboardingPercent = targets.onboarding > 0 ? ((actuals.onboarding / targets.onboarding) * 100).toFixed(0) : 0;
   const graduatedPercent = targets.graduated > 0 ? ((actuals.graduated / targets.graduated) * 100).toFixed(0) : 0;
 
-  const modules = summaryData?.category_totals || { company_info: 34, system_analysis: 17, hr_policy: 30, lesson_path: 102 };
-  const gradBreakdown = summaryData?.graduation_breakdown || { certificate: 15, hr_policy: 15, book: 15 };
+  // 💡 Real database category totals aggregated across all team members' daily metrics
+  const modules = summaryData?.category_totals || {
+    company_info: summary?.category_totals?.['Company Information'] || 0,
+    system_analysis: summary?.category_totals?.['System Analysis'] || 0,
+    hr_policy: summary?.category_totals?.['Configure HR Policy'] || 0,
+    lesson_path: summary?.category_totals?.['Provide Lesson (Path)'] || 0,
+  };
+
+  // 💡 Real graduation breakdown totals from the database
+  const gradBreakdown = summaryData?.graduation_breakdown || {
+    certificate: summary?.graduation_breakdown?.certificate || 0,
+    hr_policy: summary?.graduation_breakdown?.hr_policy || 0,
+    book: summary?.graduation_breakdown?.book || 0,
+  };
 
   return (
     <div className="w-full bg-white flex justify-center py-6">

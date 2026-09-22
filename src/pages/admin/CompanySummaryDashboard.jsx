@@ -192,7 +192,7 @@ export const CompanySummaryDashboard = () => {
             <Button variant="outline" size="sm" onClick={fetchSummary} className="h-9 text-xs">
               🔄 Refresh
             </Button>
-            {/* 💡 Hidden during print/export with print:hidden */}
+            {/* 💾 Save Notes Button (Hidden during print/export) */}
             <Button 
               onClick={handleSaveNotes} 
               disabled={isSaving || loading} 
@@ -215,10 +215,6 @@ export const CompanySummaryDashboard = () => {
           <RingLoader color="#22d3ee" size={40} />
           <span className="font-medium">Loading summary report...</span>
         </Card>
-      ) : !summary ? (
-        <Card className="p-12 text-center text-gray-400 text-xs">
-          No records found for this timeframe.
-        </Card>
       ) : (
         <div className="space-y-6">
           {/* Executive Overview Cards */}
@@ -229,10 +225,10 @@ export const CompanySummaryDashboard = () => {
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-2xl font-bold text-blue-600">
-                  {summary.actuals.training}
+                  {summary?.actuals?.training || 0}
                 </span>
                 <span className="text-xs text-gray-400">
-                  / {summary.targets.training} target
+                  / {summary?.targets?.training || 90} target
                 </span>
               </div>
             </Card>
@@ -243,10 +239,10 @@ export const CompanySummaryDashboard = () => {
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-2xl font-bold text-emerald-600">
-                  {summary.actuals.onboarding}
+                  {summary?.actuals?.onboarding || 0}
                 </span>
                 <span className="text-xs text-gray-400">
-                  / {summary.targets.onboarding} target
+                  / {summary?.targets?.onboarding || 81} target
                 </span>
               </div>
             </Card>
@@ -257,10 +253,10 @@ export const CompanySummaryDashboard = () => {
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-2xl font-bold text-purple-600">
-                  {summary.actuals.graduated}
+                  {summary?.actuals?.graduated || 0}
                 </span>
                 <span className="text-xs text-gray-400">
-                  / {summary.targets.graduated} target
+                  / {summary?.targets?.graduated || 81} target
                 </span>
               </div>
             </Card>
@@ -271,7 +267,7 @@ export const CompanySummaryDashboard = () => {
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-2xl font-bold text-rose-500">
-                  {summary.actuals.delays_cancels}
+                  {summary?.actuals?.delays_cancels || 0}
                 </span>
                 <span className="text-xs text-gray-400">incidents</span>
               </div>
@@ -283,7 +279,7 @@ export const CompanySummaryDashboard = () => {
           {/* ========================================================= */}
           <CompanySummaryTemplate
             ref={templateRef}
-            summaryData={data}
+            summaryData={data || {}}
             year={year}
             month={month}
             weekNumber={weekNumber}
