@@ -152,7 +152,7 @@ export const AdminSettingsPage = () => {
                         title="Send Instant Test Reminder"
                         className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-sm"
                       >
-                        <span>🚀</span> Test Send
+                        <span>🚀</span> Direct Send
                       </button>
 
                       <div className="flex items-center gap-2 border-l pl-3 border-gray-200">

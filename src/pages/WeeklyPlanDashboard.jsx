@@ -401,6 +401,7 @@ export const WeeklyPlanDashboard = () => {
     } catch (err) {
       console.error("Failed to send weekly image report", err);
       if (err.response?.status === 403 || err.response?.data?.needs_linking) {
+        Swal.close(); // 👈 Close any active loading popups first!
         setPendingTelegramType("weekly-custom");
         setShowConnectModal(true);
       } else {
@@ -459,6 +460,7 @@ export const WeeklyPlanDashboard = () => {
             timer: 1800,
           });
         } catch (err) {
+          Swal.close(); // 👈 Close any active loading popups first!
           if (err.response?.status === 403 || err.response?.data?.needs_linking) {
             setPendingTelegramType("daily-custom");
             setShowConnectModal(true);
