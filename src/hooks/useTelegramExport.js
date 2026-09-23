@@ -22,9 +22,22 @@ export const useTelegramExport = () => {
       return;
     }
 
+    // 1. Style-verification loading popup with 1.5s visual buffer
+    Swal.fire({
+      title: "Verifying Styles...",
+      text: "Checking template fonts and rendering snapshot...",
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     setIsSendingTelegram(true);
     try {
-      // 1. Ensure all inner images (like logo) are completely loaded before rasterizing
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       const images = Array.from(node.querySelectorAll("img"));
       await Promise.all(
         images.map((img) => {
@@ -36,12 +49,8 @@ export const useTelegramExport = () => {
         })
       );
 
-      // 2. Stabilization delay for layout settlement
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // 3. Configure canvas (allowTaint must be FALSE to avoid corrupted canvas exports)
       const canvasOptions = {
-        scale: scale, // 2 provides crisp text without ballooning payload past server limits
+        scale: scale,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
@@ -61,7 +70,6 @@ export const useTelegramExport = () => {
 
       const rawCanvas = await html2canvas(node, canvasOptions);
 
-      // 4. Convert to Blob with safety validation
       const blob = await new Promise((resolve) => {
         rawCanvas.toBlob(resolve, "image/png", 0.92);
       });
@@ -70,7 +78,13 @@ export const useTelegramExport = () => {
         throw new Error("Generated image blob is empty.");
       }
 
-      // 5. Prepare form data
+      // 2. Smoothly update modal for upload state
+      Swal.update({
+        title: "Sending to Telegram...",
+        text: "Uploading fully-styled report to your channel.",
+      });
+
+      // 3. Prepare form data (Including all required parameters for daily/weekly)
       const formData = new FormData();
       const fileName = type === 'daily'
         ? `Daily_Action_Plan_Week_${planData?.week_number || "1"}.png`
@@ -80,7 +94,20 @@ export const useTelegramExport = () => {
       formData.append("type", type);
       formData.append("week_number", planData?.week_number || 1);
 
-      // 6. Send to Laravel API
+      // 💡 Appending missing fields so backend gets month, year, and days correctly!
+      if (planData?.month) {
+        formData.append("month", planData.month);
+      }
+      if (planData?.year) {
+        formData.append("year", planData.year);
+      }
+      if (planData?.days) {
+        formData.append("days", JSON.stringify(planData.days));
+      }
+      if (planData?.caption) {
+        formData.append("caption", planData.caption);
+      }
+
       const response = await axios.post(
         'https://checkinme-api.onrender.com/api/telegram/send-image',
         formData,
@@ -95,17 +122,16 @@ export const useTelegramExport = () => {
       if (response.data?.success || response.status === 200) {
         Swal.fire({
           icon: 'success',
-          title: 'Success!',
-          text: `Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to your Telegram!`,
+          title: 'Sent Successfully!',
+          text: `Successfully sent ${type === 'daily' ? 'Daily' : 'Weekly'} Plan to Telegram with full styles!`,
           showConfirmButton: false,
-          timer: 1500
+          timer: 1800
         });
       }
 
     } catch (error) {
       console.error("Failed to send to Telegram", error);
 
-      // Print the exact Laravel validation errors in DevTools console
       if (error.response?.data?.errors) {
         console.error("Backend Validation Details:", error.response.data.errors);
       }
@@ -131,7 +157,7 @@ export const useTelegramExport = () => {
         Swal.fire({
           icon: 'error',
           title: 'Send Failed',
-          text: 'Failed to send to Telegram. Please try again.',
+          text: err?.response?.data?.message || 'Failed to send to Telegram. Please try again.',
           confirmButtonColor: '#ef4444'
         });
       }

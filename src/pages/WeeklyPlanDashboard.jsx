@@ -270,7 +270,12 @@ export const WeeklyPlanDashboard = () => {
       pdf.save(`Weekly_Action_Plan_Week_${selectedWeek}.pdf`);
     } catch (error) {
       console.error("Failed to export PDF", error);
-      alert("Failed to generate PDF. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Export Failed",
+        text: "Failed to generate PDF. Please try again.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setIsExportingPdf(false);
     }
@@ -299,7 +304,12 @@ export const WeeklyPlanDashboard = () => {
       link.click();
     } catch (error) {
       console.error("Failed to export PNG", error);
-      alert("Failed to generate PNG. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Export Failed",
+        text: "Failed to generate PNG. Please try again.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setIsExportingWeeklyPng(false);
     }
@@ -331,20 +341,29 @@ export const WeeklyPlanDashboard = () => {
       link.click();
     } catch (error) {
       console.error("Failed to export Daily PNG", error);
-      alert("Failed to generate PNG. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Export Failed",
+        text: "Failed to generate PNG. Please try again.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setIsExportingDailyPng(false);
     }
   };
 
-  // --- 5. SEND WEEKLY IMAGE TO TELEGRAM (WITH DYNAMIC CAPTION) ---
+  // --- 5. SEND WEEKLY IMAGE TO TELEGRAM (USING APISERVICE) ---
   const handleSendWeeklyToTelegram = async ({ week_number, month, caption }) => {
     const node = componentRef.current;
     if (!node) return;
 
     try {
+      // 1. Wait for fonts and style settling
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       const rawCanvas = await html2canvas(node, {
-        scale: 1.5, // Optimized speed scale
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -353,36 +372,44 @@ export const WeeklyPlanDashboard = () => {
         logging: false,
       });
 
-      rawCanvas.toBlob(async (blob) => {
-        if (!blob) {
-          alert("Failed to capture image snapshot.");
-          return;
-        }
+      // 2. Properly await the blob conversion so errors are catchable
+      const blob = await new Promise((resolve) => {
+        rawCanvas.toBlob(resolve, "image/jpeg", 0.9);
+      });
 
-        const formData = new FormData();
-        formData.append("image", blob, "weekly_plan.png");
-        formData.append("week_number", week_number);
-        formData.append("month", month);
-        formData.append("year", Number(filterYear));
-        formData.append("caption", caption); // 👈 Custom caption sent to backend
+      if (!blob) {
+        throw new Error("Failed to capture image snapshot.");
+      }
+      const formData = new FormData();
+      formData.append("image", blob, "weekly_plan.png");
+      formData.append("week_number", week_number);
+      formData.append("month", month);
+      formData.append("year", Number(filterYear));
+      formData.append("caption", caption);
 
-        try {
-          const response = await apiService.sendWeeklyImagesToTelegram(formData);
-          alert(response.message || "Weekly report sent successfully to Telegram!");
-        } catch (err) {
-          if (err.response?.status === 403 || err.response?.data?.needs_linking) {
-            setPendingTelegramType("weekly-custom");
-            setShowConnectModal(true);
-          } else {
-            throw err;
-          }
-        }
-      }, "image/jpeg", 0.9);
+      // Check your services/api.js file to ensure this method name matches exactly
+      const response = await apiService.sendWeeklyImagesToTelegram(formData);
+      
+      Swal.fire({
+        icon: "success",
+        title: "Sent Successfully!",
+        text: response.message || "Weekly image sent successfully to Telegram with full styles!",
+        showConfirmButton: false,
+        timer: 1800,
+      });
 
     } catch (err) {
       console.error("Failed to send weekly image report", err);
-      if (err.response?.status !== 403) {
-        alert(err.response?.data?.message || "Failed to send report to Telegram.");
+      if (err.response?.status === 403 || err.response?.data?.needs_linking) {
+        setPendingTelegramType("weekly-custom");
+        setShowConnectModal(true);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Send Failed",
+          text: err.response?.data?.message || "Failed to send report to Telegram.",
+          confirmButtonColor: "#ef4444",
+        });
       }
     }
   };
@@ -406,7 +433,12 @@ export const WeeklyPlanDashboard = () => {
 
       rawCanvas.toBlob(async (blob) => {
         if (!blob) {
-          alert("Failed to capture image snapshot.");
+          Swal.fire({
+            icon: "error",
+            title: "Capture Failed",
+            text: "Failed to capture image snapshot.",
+            confirmButtonColor: "#ef4444",
+          });
           return;
         }
 
@@ -419,7 +451,13 @@ export const WeeklyPlanDashboard = () => {
 
         try {
           const response = await apiService.sendDailyImagesToTelegram(formData);
-          alert(response.message || "Daily image sent successfully to Telegram!");
+          Swal.fire({
+            icon: "success",
+            title: "Sent Successfully!",
+            text: response.message || "Daily image sent successfully to Telegram!",
+            showConfirmButton: false,
+            timer: 1800,
+          });
         } catch (err) {
           if (err.response?.status === 403 || err.response?.data?.needs_linking) {
             setPendingTelegramType("daily-custom");
@@ -433,7 +471,12 @@ export const WeeklyPlanDashboard = () => {
     } catch (err) {
       console.error("Failed to send daily image report", err);
       if (err.response?.status !== 403) {
-        alert(err.response?.data?.message || "Failed to send report to Telegram.");
+        Swal.fire({
+          icon: "error",
+          title: "Send Failed",
+          text: err.response?.data?.message || "Failed to send report to Telegram.",
+          confirmButtonColor: "#ef4444",
+        });
       }
     }
   };

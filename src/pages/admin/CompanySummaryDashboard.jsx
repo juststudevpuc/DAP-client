@@ -95,7 +95,10 @@ export const CompanySummaryDashboard = () => {
     if (!node) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [canvas.width, canvas.height], compress: true });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
@@ -107,31 +110,76 @@ export const CompanySummaryDashboard = () => {
     }
   };
 
-  // --- Send to Telegram ---
+  // --- Send to Telegram with SweetAlert Loading & Style Verification ---
   const handleSendToTelegram = async () => {
     const node = templateRef.current;
     if (!node) return;
+
+    // 💡 Show professional loading popup immediately
+    Swal.fire({
+      title: "Preparing Report...",
+      text: "Verifying styles and rendering snapshot for Telegram...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(node, { scale: 1.5, useCORS: true, backgroundColor: "#ffffff" });
+      // 💡 CRITICAL: Ensure all custom fonts and layout CSS are fully loaded before capture
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const canvas = await html2canvas(node, { scale: 1.5, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          Swal.fire("Error", "Failed to generate report image snapshot.", "error");
+          setIsExporting(false);
+          return;
+        }
+
         const formData = new FormData();
         formData.append("image", blob, "company_summary.png");
         formData.append("week_number", Number(weekNumber));
         formData.append("month", Number(month));
         formData.append("year", Number(year));
+        
         const ordinalWeek = weekNumber === 1 ? '1st' : weekNumber === 2 ? '2nd' : weekNumber === 3 ? '3rd' : '4th';
         formData.append("caption", `${ordinalWeek} weekly action plan summary report`);
+
+        // Update modal status for upload
+        Swal.update({
+          title: "Sending to Telegram...",
+          text: "Uploading fully-styled report to your channel.",
+        });
+
         const response = await apiService.sendWeeklyImagesToTelegram(formData);
-        alert(response.message || "Sent successfully to Telegram!");
-      }, "image/jpeg", 0.9);
+
+        // 💡 Crisp success notification
+        Swal.fire({
+          icon: "success",
+          title: "Sent Successfully!",
+          text: response.message || "The summary report has been sent to Telegram with full styles!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+      }, "image/jpeg", 0.95);
+
     } catch (err) {
       console.error("Telegram send failed", err);
+      Swal.fire({
+        icon: "error",
+        title: "Send Failed",
+        text: err.response?.data?.message || "Failed to send report to Telegram. Please try again.",
+      });
     } finally {
       setIsExporting(false);
     }
   };
+  
 
   const summary = data?.summary;
   const members = data?.members || [];
