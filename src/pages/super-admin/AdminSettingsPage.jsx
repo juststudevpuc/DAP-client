@@ -50,6 +50,48 @@ export const AdminSettingsPage = () => {
     }
   };
 
+  const handleTestSend = async (userId, userName, hasChatId) => {
+    if (!hasChatId) {
+      Swal.fire({
+        icon: "warning",
+        title: "Not Connected",
+        text: `${userName} has not linked a Telegram Chat ID yet.`,
+        confirmButtonColor: "#3b82f6",
+        customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" },
+      });
+      return;
+    }
+
+    try {
+      Swal.fire({
+        title: "Sending test...",
+        text: `Dispatching telegram message to ${userName}`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const res = await apiService.sendInstantTelegramTest(userId);
+
+      Swal.fire({
+        icon: "success",
+        title: "Sent Successfully!",
+        text: res.message,
+        timer: 2000,
+        showConfirmButton: false,
+        customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" },
+      });
+    } catch (err) {
+      console.error("Failed to send test telegram", err);
+      Swal.fire({
+        icon: "error",
+        title: "Failed",
+        text: err.response?.data?.message || "Could not send test message.",
+        confirmButtonColor: "#ef4444",
+        customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" },
+      });
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-xs text-gray-500">Loading system settings...</div>;
   }
@@ -79,7 +121,7 @@ export const AdminSettingsPage = () => {
               <tr className="bg-gray-50/70 border-b border-gray-100 text-gray-500 font-semibold uppercase tracking-wider">
                 <th className="p-3.5">User Account</th>
                 <th className="p-3.5">Telegram Status</th>
-                <th className="p-3.5 text-right">Automated Alerts</th>
+                <th className="p-3.5 text-right">Automated Alerts & Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -103,19 +145,30 @@ export const AdminSettingsPage = () => {
                     )}
                   </td>
                   <td className="p-3.5 text-right">
-                    <div className="inline-flex items-center gap-2 justify-end">
-                      <span className="text-[11px] text-gray-500 font-medium">
-                        {user.telegram_notifications_enabled ? "Active" : "Disabled"}
-                      </span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={user.telegram_notifications_enabled}
-                          onChange={() => handleToggleUser(user.id, user.telegram_notifications_enabled)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                    <div className="inline-flex items-center gap-3 justify-end">
+                      {/* Instant Test Send Button */}
+                      <button
+                        onClick={() => handleTestSend(user.id, user.name, user.telegram_chat_id)}
+                        title="Send Instant Test Reminder"
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-sm"
+                      >
+                        <span>🚀</span> Test Send
+                      </button>
+
+                      <div className="flex items-center gap-2 border-l pl-3 border-gray-200">
+                        <span className="text-[11px] text-gray-500 font-medium">
+                          {user.telegram_notifications_enabled ? "Active" : "Disabled"}
+                        </span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={user.telegram_notifications_enabled}
+                            onChange={() => handleToggleUser(user.id, user.telegram_notifications_enabled)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
                     </div>
                   </td>
                 </tr>

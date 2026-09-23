@@ -186,6 +186,10 @@ export const apiService = {
         const response = await apiClient.post(`/admin/users/${userId}/telegram-toggle`, data);
         return response.data;
     },
+    sendInstantTelegramTest: async (userId) => {
+        const response = await apiClient.post(`/admin/users/${userId}/telegram-test`);
+        return response.data;
+    },
 
 
 };
