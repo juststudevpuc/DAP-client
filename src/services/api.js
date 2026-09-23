@@ -175,7 +175,18 @@ export const apiService = {
     saveCompanySummaryNotes: async (payload) => {
     const response = await apiClient.post('/company-summary/notes', payload);
     return response.data;
-},
+    },
+// --- System Settings & Telegram Automation Endpoints ---
+    getSystemSettings: async () => {
+        const response = await apiClient.get('/admin/system-settings');
+        return response.data;
+    },
+
+    toggleUserTelegramNotification: async (userId, data) => {
+        const response = await apiClient.post(`/admin/users/${userId}/telegram-toggle`, data);
+        return response.data;
+    },
+
 
 };
 

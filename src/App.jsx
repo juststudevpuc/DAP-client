@@ -16,6 +16,7 @@ import { AboutUs } from "./pages/About-us-Page";
 import { LandingLayout } from "./components/layout/LandingLayout"; 
 import { Portfolio } from "./pages/PortfolioPage";
 import { ContactUs } from "./pages/Contact-us-Page";
+import { AdminSettingsPage } from "./pages/super-admin/AdminSettingsPage";
 
 // Placeholder Pages (Replace with dedicated component files when ready)
 const MainDashboard = () => (
@@ -72,6 +73,7 @@ export default function App() {
                 path="/super-admin/manage-users"
                 element={<ManageUsersPage />}
               />
+              <Route path="/admin/settings" element={<AdminSettingsPage />} />
             </Route>
           </Route>
         </Route>
