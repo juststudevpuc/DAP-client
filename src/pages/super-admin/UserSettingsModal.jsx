@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiService } from '../../services/api'; // Use your central api service
 import Swal from 'sweetalert2';
+
+const swalStyle = { customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" } };
 
 export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
     const [telegramEnabled, setTelegramEnabled] = useState(false);
@@ -19,27 +21,30 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
         setLoading(true);
 
         try {
-            // We will point this to our explicit save endpoint
-            const response = await axios.post(`/api/admin/users/${user.id}/settings`, {
+            // Use apiService so cookies and CSRF headers match your app setup
+            const response = await apiService.toggleUserTelegramNotification(user.id, {
                 telegram_notifications_enabled: telegramEnabled ? 1 : 0
             });
 
-            if (response.data.success) {
+            if (response.success || response) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Saved!',
-                    text: response.data.message,
+                    text: `Settings updated successfully for ${user.name}.`,
                     timer: 1500,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    ...swalStyle
                 });
                 onSaved(); // Refresh parent list
                 onClose(); // Close modal
             }
         } catch (error) {
+            console.error("Failed to save settings:", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.response?.data?.message || 'Failed to save settings.'
+                text: error.response?.data?.message || 'Failed to save settings.',
+                ...swalStyle
             });
         } finally {
             setLoading(false);
@@ -47,12 +52,12 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl">
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                     <div>
                         <h3 className="text-lg font-bold text-gray-900">Account Settings</h3>
-                        <p className="text-sm text-gray-500">{user.name} ({user.email})</p>
+                        <p className="text-xs text-gray-500">{user.name} ({user.email})</p>
                     </div>
                     <button 
                         onClick={onClose}
@@ -65,8 +70,8 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
                 <form onSubmit={handleSave} className="py-6 space-y-6">
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <div>
-                            <span className="font-medium text-gray-800 block">Telegram Daily Reminders</span>
-                            <span className="text-xs text-gray-500">Automatically ping user on Telegram if metrics are missing.</span>
+                            <span className="font-medium text-gray-800 block text-xs">Telegram Daily Reminders</span>
+                            <span className="text-[11px] text-gray-400">Automatically ping user on Telegram if metrics are missing.</span>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input 
@@ -83,14 +88,14 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                            className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-sm disabled:opacity-50"
+                            className="px-5 py-2 text-xs font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-sm disabled:opacity-50"
                         >
                             {loading ? 'Saving...' : 'Save Changes'}
                         </button>
