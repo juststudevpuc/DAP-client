@@ -17,39 +17,44 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
     if (!isOpen || !user) return null;
 
     const handleSave = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
 
-        try {
-            // Use apiService so cookies and CSRF headers match your app setup
-            const response = await apiService.toggleUserTelegramNotification(user.id, {
-                telegram_notifications_enabled: telegramEnabled ? 1 : 0
-            });
+    try {
+        const response = await apiService.toggleUserTelegramNotification(user.id, {
+            telegram_notifications_enabled: telegramEnabled ? 1 : 0
+        });
 
-            if (response.success || response) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Saved!',
-                    text: `Settings updated successfully for ${user.name}.`,
-                    timer: 1500,
-                    showConfirmButton: false,
-                    ...swalStyle
-                });
-                onSaved(); // Refresh parent list
-                onClose(); // Close modal
-            }
-        } catch (error) {
-            console.error("Failed to save settings:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.response?.data?.message || 'Failed to save settings.',
+        if (response.success || response) {
+            // 1. Close the modal first so the screen is clean
+            onClose();
+
+            // 2. Refresh the parent user list data
+            onSaved();
+
+            // 3. Show the success popup right after
+            await Swal.fire({
+                icon: 'success',
+                title: 'Saved!',
+                text: `Settings updated successfully for ${user.name}.`,
+                timer: 1500,
+                showConfirmButton: false,
                 ...swalStyle
             });
-        } finally {
-            setLoading(false);
         }
-    };
+    } catch (error) {
+        console.error("Failed to save settings:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.response?.data?.message || 'Failed to save settings.',
+            ...swalStyle
+        });
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
