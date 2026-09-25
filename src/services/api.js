@@ -190,6 +190,10 @@ export const apiService = {
         const response = await apiClient.post(`/admin/users/${userId}/telegram-test`);
         return response.data;
     },
+    toggleUserTelegramNotification: async (userId, data) => {
+    const response = await axios.post(`/api/admin/users/${userId}/settings`, data);
+    return response.data;
+}
 
 
 };
