@@ -1,39 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api'; // Use your central api service
+import { apiService } from '../../services/api';
 import Swal from 'sweetalert2';
 
 const swalStyle = { customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" } };
 
 export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
     const [telegramEnabled, setTelegramEnabled] = useState(false);
+    const [chatId, setChatId] = useState(''); // <--- Added state for Chat ID
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (user) {
             setTelegramEnabled(user.telegram_notifications_enabled === 1 || user.telegram_notifications_enabled === true);
+            setChatId(user.telegram_chat_id || ''); // <--- Populate existing chat ID if available
         }
     }, [user]);
 
     if (!isOpen || !user) return null;
 
     const handleSave = async (e) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+        e.preventDefault();
+        if (loading) return;
+        setLoading(true);
 
-    try {
-        const response = await apiService.toggleUserTelegramNotification(user.id, {
-            telegram_notifications_enabled: telegramEnabled ? 1 : 0
-        });
+        try {
+            // Send both toggle state and chat ID to the backend
+            await apiService.toggleUserTelegramNotification(user.id, {
+                telegram_notifications_enabled: telegramEnabled ? 1 : 0,
+                telegram_chat_id: chatId // <--- Send chat ID to database
+            });
 
-        if (response.success || response) {
-            // 1. Close the modal first so the screen is clean
-            onClose();
-
-            // 2. Refresh the parent user list data
-            onSaved();
-
-            // 3. Show the success popup right after
             await Swal.fire({
                 icon: 'success',
                 title: 'Saved!',
@@ -42,19 +38,22 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
                 showConfirmButton: false,
                 ...swalStyle
             });
+
+            onSaved(); 
+            onClose(); 
+
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.response?.data?.message || 'Failed to save settings.',
+                ...swalStyle
+            });
+        } finally {
+            setLoading(false);
         }
-    } catch (error) {
-        console.error("Failed to save settings:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || 'Failed to save settings.',
-            ...swalStyle
-        });
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -64,15 +63,23 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
                         <h3 className="text-lg font-bold text-gray-900">Account Settings</h3>
                         <p className="text-xs text-gray-500">{user.name} ({user.email})</p>
                     </div>
-                    <button 
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 text-xl font-bold"
-                    >
-                        &times;
-                    </button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
                 </div>
 
-                <form onSubmit={handleSave} className="py-6 space-y-6">
+                <form onSubmit={handleSave} className="py-6 space-y-4">
+                    {/* --- Added Telegram Chat ID Input Field --- */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Telegram Chat ID</label>
+                        <input 
+                            type="text"
+                            value={chatId}
+                            onChange={(e) => setChatId(e.target.value)}
+                            placeholder="e.g. 1282406422"
+                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <span className="text-[10px] text-gray-400 mt-1 block">Enter the user's Telegram chat ID to link their account.</span>
+                    </div>
+
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <div>
                             <span className="font-medium text-gray-800 block text-xs">Telegram Daily Reminders</span>
@@ -90,18 +97,8 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
                     </div>
 
                     <div className="flex justify-end space-x-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-5 py-2 text-xs font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-sm disabled:opacity-50"
-                        >
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition">Cancel</button>
+                        <button type="submit" disabled={loading} className="px-5 py-2 text-xs font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-sm disabled:opacity-50">
                             {loading ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import apiService from "@/services/api"; // Adjust to your api import path
+import { apiService } from "@/services/api"; // Uses named export matching your api.js
 
 export const AdminTelegramSettings = () => {
   const [autoAlertsEnabled, setAutoAlertsEnabled] = useState(true);
@@ -14,8 +14,9 @@ export const AdminTelegramSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await apiService.get("/admin/telegram/auto-alerts");
-      setAutoAlertsEnabled(response.data.enabled);
+      const response = await apiService.getAutoAlerts();
+      // Adjust based on your backend response structure (e.g. response.enabled or response.data.enabled)
+      setAutoAlertsEnabled(response.enabled ?? response.data?.enabled);
     } catch (err) {
       console.error("Failed to fetch auto-alert settings", err);
     } finally {
@@ -29,7 +30,7 @@ export const AdminTelegramSettings = () => {
     setToggling(true);
 
     try {
-      await apiService.post("/admin/telegram/auto-alerts", {
+      await apiService.toggleAutoAlerts({
         enabled: newValue,
       });
 
@@ -43,7 +44,7 @@ export const AdminTelegramSettings = () => {
       });
     } catch (err) {
       console.error("Failed to update status", err);
-      setAutoAlertsEnabled(!newValue); // Revert if failed
+      setAutoAlertsEnabled(!newValue); // Revert UI if API fails
       Swal.fire({
         icon: "error",
         title: "Update Failed",

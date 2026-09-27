@@ -30,8 +30,6 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-
-            // Prevent multiple alerts if several requests fail at the exact same time
             if (!Swal.isVisible()) {
                 Swal.fire({
                     icon: 'warning',
@@ -39,13 +37,10 @@ apiClient.interceptors.response.use(
                     text: 'Your session has expired. Please log in again to continue.',
                     confirmButtonText: 'Go to Login',
                     confirmButtonColor: '#3b82f6',
-                    allowOutsideClick: false, // Force them to click the button
+                    allowOutsideClick: false,
                     allowEscapeKey: false
                 }).then(() => {
-                    // Clear the state
                     useAuthStore.getState().logout();
-
-                    // Force redirect to login page (safest method from outside React Router)
                     window.location.href = '/login';
                 });
             }
@@ -149,6 +144,7 @@ export const apiService = {
         });
         return response.data;
     },
+    
     sendWeeklyImagesToTelegram: async (formData) => {
         const response = await apiClient.post('/telegram/send-weekly-images', formData, {
             headers: {
@@ -168,34 +164,41 @@ export const apiService = {
         const response = await apiClient.get('/public/stats');
         return response.data;
     },
+    
     resetUserPasswordByAdmin: async (userId, passwordData) => {
-    const response = await apiClient.put(`/admin/users/${userId}/reset-password`, passwordData);
-    return response.data;
+        const response = await apiClient.put(`/admin/users/${userId}/reset-password`, passwordData);
+        return response.data;
     },
+    
     saveCompanySummaryNotes: async (payload) => {
-    const response = await apiClient.post('/company-summary/notes', payload);
-    return response.data;
+        const response = await apiClient.post('/company-summary/notes', payload);
+        return response.data;
     },
-// --- System Settings & Telegram Automation Endpoints ---
+
+    // --- System Settings & Telegram Automation Endpoints ---
     getSystemSettings: async () => {
         const response = await apiClient.get('/admin/system-settings');
         return response.data;
     },
 
     toggleUserTelegramNotification: async (userId, data) => {
-        const response = await apiClient.post(`/admin/users/${userId}/telegram-toggle`, data);
+        const response = await apiClient.post(`/admin/users/${userId}/settings`, data);
         return response.data;
     },
+
     sendInstantTelegramTest: async (userId) => {
         const response = await apiClient.post(`/admin/users/${userId}/telegram-test`);
         return response.data;
     },
-    toggleUserTelegramNotification: async (userId, data) => {
-    const response = await axios.post(`/api/admin/users/${userId}/settings`, data);
-    return response.data;
-}
-
-
+        // Add these inside export const apiService = { ... } in api.js:
+    getAutoAlerts: async () => {
+        const response = await apiClient.get('/admin/telegram/auto-alerts');
+        return response.data;
+    },
+    toggleAutoAlerts: async (data) => {
+        const response = await apiClient.post('/admin/telegram/auto-alerts', data);
+        return response.data;
+    },
 };
 
 export default apiClient;
