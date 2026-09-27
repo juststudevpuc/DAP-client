@@ -40,6 +40,7 @@ function hashCode(str) {
 const getAvatarColors = (id) => AVATAR_PALETTE[Math.abs(hashCode(String(id))) % AVATAR_PALETTE.length];
 
 const swalStyle = { customClass: { popup: "rounded-2xl shadow-xl border border-gray-100" } };
+const isTelegramEnabled = (value) => value === true || value === 1 || value === "1";
 
 /* ---------- icons ---------- */
 
@@ -201,7 +202,7 @@ const UserSettingsModal = ({ user, isOpen, onClose, onSaved }) => {
 
   useEffect(() => {
     if (user) {
-      setTelegramEnabled(user.telegram_notifications_enabled === 1 || user.telegram_notifications_enabled === true);
+      setTelegramEnabled(isTelegramEnabled(user.telegram_notifications_enabled));
     }
   }, [user]);
 
@@ -216,23 +217,30 @@ const UserSettingsModal = ({ user, isOpen, onClose, onSaved }) => {
         telegram_notifications_enabled: telegramEnabled ? 1 : 0
       });
 
-      if (response.success || response) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Saved!',
-          text: `Settings updated successfully for ${user.name}.`,
-          timer: 1500,
-          showConfirmButton: false,
-          ...swalStyle
-        });
-        onSaved(); 
-        onClose(); 
+      if (response?.success === false) {
+        throw new Error(response.message || "The server rejected the settings update.");
       }
+
+      const refreshedUsers = await onSaved({ showError: false });
+      const savedUser = refreshedUsers?.find((item) => String(item.id) === String(user.id));
+      if (!savedUser || isTelegramEnabled(savedUser.telegram_notifications_enabled) !== telegramEnabled) {
+        throw new Error("The server accepted the request, but the setting was not saved. Check the backend update endpoint.");
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Saved!',
+        text: `Settings updated successfully for ${user.name}.`,
+        timer: 1500,
+        showConfirmButton: false,
+        ...swalStyle
+      });
+      onClose();
     } catch (error) {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: error.response?.data?.message || 'Failed to save settings.',
+        text: error.response?.data?.message || error.message || 'Failed to save settings.',
         ...swalStyle
       });
     } finally {
@@ -309,20 +317,25 @@ export const AdminSettingsPage = () => {
     fetchSettingsData();
   }, []);
 
-  const fetchSettingsData = async () => {
+  const fetchSettingsData = async ({ showError = true } = {}) => {
     setLoading(true);
     try {
       const response = await apiService.getSystemSettings();
-      setUsers(response.users || response.data || response);
+      const loadedUsers = response.users || response.data || response;
+      setUsers(loadedUsers);
+      return loadedUsers;
     } catch (err) {
       console.error("Failed to load system settings data", err);
-      Swal.fire({
-        icon: "error",
-        title: "Couldn't load settings",
-        text: "We weren't able to load user data. Please refresh the page.",
-        confirmButtonColor: "#ef4444",
-        ...swalStyle,
-      });
+      if (showError) {
+        Swal.fire({
+          icon: "error",
+          title: "Couldn't load settings",
+          text: "We weren't able to load user data. Please refresh the page.",
+          confirmButtonColor: "#ef4444",
+          ...swalStyle,
+        });
+      }
+      return null;
     } finally {
       setLoading(false);
     }
