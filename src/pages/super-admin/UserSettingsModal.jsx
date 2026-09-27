@@ -19,41 +19,40 @@ export default function UserSettingsModal({ user, isOpen, onClose, onSaved }) {
     if (!isOpen || !user) return null;
 
     const handleSave = async (e) => {
-        e.preventDefault();
-        if (loading) return;
-        setLoading(true);
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
 
-        try {
-            // Send both toggle state and chat ID to the backend
-            await apiService.toggleUserTelegramNotification(user.id, {
-                telegram_notifications_enabled: telegramEnabled ? 1 : 0,
-                telegram_chat_id: chatId // <--- Send chat ID to database
-            });
+    try {
+        // Send the exact payload key expected by Laravel
+        await apiService.toggleUserTelegramNotification(user.id, {
+            telegram_notifications_enabled: telegramEnabled ? 1 : 0
+        });
 
-            await Swal.fire({
-                icon: 'success',
-                title: 'Saved!',
-                text: `Settings updated successfully for ${user.name}.`,
-                timer: 1500,
-                showConfirmButton: false,
-                ...swalStyle
-            });
+        await Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: `Settings updated successfully for ${user.name}.`,
+            timer: 1500,
+            showConfirmButton: false,
+            ...swalStyle
+        });
 
-            onSaved(); 
-            onClose(); 
+        onSaved(); 
+        onClose(); 
 
-        } catch (error) {
-            console.error("Failed to save settings:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.response?.data?.message || 'Failed to save settings.',
-                ...swalStyle
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (error) {
+        console.error("Failed to save settings:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.response?.data?.message || 'Failed to save settings.',
+            ...swalStyle
+        });
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
