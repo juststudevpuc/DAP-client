@@ -23,7 +23,7 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
 
   const dynamicDateRange = calculateDateRange(year, month, weekNumber);
 
-  // 💡 Guaranteed target defaults (90, 81, 81)
+  // Guaranteed target defaults
   const apiTrainingTarget = Number(summary?.targets?.training);
   const apiOnboardingTarget = Number(summary?.targets?.onboarding);
   const apiGraduatedTarget = Number(summary?.targets?.graduated);
@@ -40,19 +40,21 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
   const onboardingPercent = targets.onboarding > 0 ? ((actuals.onboarding / targets.onboarding) * 100).toFixed(0) : 0;
   const graduatedPercent = targets.graduated > 0 ? ((actuals.graduated / targets.graduated) * 100).toFixed(0) : 0;
 
-  // 💡 Real database category totals aggregated across all team members' daily metrics
-  const modules = summaryData?.category_totals || {
-    company_info: summary?.category_totals?.['Company Information'] || 0,
-    system_analysis: summary?.category_totals?.['System Analysis'] || 0,
-    hr_policy: summary?.category_totals?.['Configure HR Policy'] || 0,
-    lesson_path: summary?.category_totals?.['Provide Lesson (Path)'] || 0,
+  // 💡 Robust extraction checking all possible nested backend keys
+  const catTotals = summaryData?.category_totals || summary?.category_totals || {};
+  const modules = {
+    company_info: catTotals['Company Information'] || catTotals['company_info'] || 0,
+    system_analysis: catTotals['System Analysis'] || catTotals['system_analysis'] || 0,
+    hr_policy: catTotals['Configure HR Policy'] || catTotals['hr_policy'] || 0,
+    lesson_path: catTotals['Provide Lesson (Path)'] || catTotals['lesson_path'] || 0,
   };
 
-  // 💡 Real graduation breakdown totals from the database
-  const gradBreakdown = summaryData?.graduation_breakdown || {
-    certificate: summary?.graduation_breakdown?.certificate || 0,
-    hr_policy: summary?.graduation_breakdown?.hr_policy || 0,
-    book: summary?.graduation_breakdown?.book || 0,
+  // 💡 Robust graduation breakdown extraction
+  const gradData = summaryData?.graduation_breakdown || summary?.graduation_breakdown || {};
+  const gradBreakdown = {
+    certificate: gradData.certificate || 0,
+    hr_policy: gradData.hr_policy || 0,
+    book: gradData.book || 0,
   };
 
   return (
