@@ -32,10 +32,10 @@ export const WeeklyHeader = ({ planData, currentWeekNumber, onDateChange }) => {
 
     const year = dateObj.getFullYear().toString();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    
-    // Calculate week of the month (e.g., days 1-7 = Week 1, 8-14 = Week 2, etc.)
+
+    // Calculate week of the month (days 1-7 = Week 1 ... 29-31 = Week 5)
     const dayOfMonth = dateObj.getDate();
-    const weekNumber = Math.min(Math.ceil(dayOfMonth / 7), 4);
+    const weekNumber = Math.min(Math.ceil(dayOfMonth / 7), 5);
 
     // Automatically calculate a default 6-day end date if needed
     const endObj = new Date(dateObj);
@@ -58,7 +58,7 @@ export const WeeklyHeader = ({ planData, currentWeekNumber, onDateChange }) => {
   const handleEndDateChange = (e) => {
     const newEnd = e.target.value;
     setEndDate(newEnd);
-    
+
     if (onDateChange && startDate) {
       const dateObj = new Date(startDate);
       onDateChange({
@@ -200,8 +200,7 @@ export const WeeklyHeader = ({ planData, currentWeekNumber, onDateChange }) => {
             <span className="ml-1 font-normal">9</span>
           </div>
           <div className="text-right">
-            ប្រកាស Graduated:{" "}
-            <span className="ml-1 font-normal">9</span>
+            ប្រកាស Graduated: <span className="ml-1 font-normal">9</span>
           </div>
         </div>
       </div>
