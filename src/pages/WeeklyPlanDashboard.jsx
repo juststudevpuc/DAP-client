@@ -667,9 +667,30 @@ export const WeeklyPlanDashboard = () => {
       >
         <Card className="mx-auto p-6 bg-white shadow-sm rounded-none border-gray-300 print:shadow-none print:border-none print:p-0 print:break-inside-avoid">
           <WeeklyHeader
-            planData={planData}
-            currentWeekNumber={selectedWeek}
-          />
+  planData={planData}
+  currentWeekNumber={selectedWeek}
+  onDateChange={async ({ year, month, weekNumber, start_date, end_date }) => {
+    // Update dashboard state filters
+    setFilterYear(year);
+    setFilterMonth(month);
+    setSelectedWeek(weekNumber);
+
+    // Optionally update plan dates in backend instantly
+    if (planData?.id) {
+      try {
+        await apiService.updateWeeklyPlan(planData.id, {
+          ...planData,
+          start_date,
+          end_date,
+          week_number: Number(weekNumber),
+        });
+        await loadWeekData(year, month, weekNumber);
+      } catch (err) {
+        console.error("Failed to sync date range change", err);
+      }
+    }
+  }}
+/>
           <ActionPlanGrid dailyMetrics={planData.daily_metrics} />
 
           <div id="weekly-footer-container">

@@ -53,8 +53,8 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
   const gradData = summaryData?.graduation_breakdown || summary?.graduation_breakdown || {};
   const gradBreakdown = {
     certificate: gradData.certificate || 0,
-    hr_policy: gradData.hr_policy || 0,
-    book: gradData.book || 0,
+    hr_policy: gradData.certificate || 0,
+    book: gradData.certificate || 0,
   };
 
   return (
@@ -176,9 +176,9 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
               <span className="font-bold">{gradBreakdown.certificate}</span>,
               <span className="ml-1">Provided HR</span>
               <span className="font-bold meta-underline text-blue-700">Policy:</span>
-              <span className="font-bold">{gradBreakdown.hr_policy}</span>,
+              <span className="font-bold">{gradBreakdown.certificate}</span>,
               <span className="ml-1">Provided Book:</span>
-              <span className="font-bold">{gradBreakdown.book}</span>
+              <span className="font-bold">{gradBreakdown.certificate}</span>
             </div>
           </li>
         </ol>

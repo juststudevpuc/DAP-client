@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import useAuthStore from "../../store/useAuthStore";
 
-export const WeeklyHeader = ({ planData, currentWeekNumber }) => {
+export const WeeklyHeader = ({ planData, currentWeekNumber, onDateChange }) => {
   const user = useAuthStore((state) => state.user);
 
   const [startDate, setStartDate] = useState("");
@@ -19,6 +19,57 @@ export const WeeklyHeader = ({ planData, currentWeekNumber }) => {
       setEndDate(formatForInput(planData.end_date));
     }
   }, [planData]);
+
+  // 💡 Calculate Year, Month, and Week Number automatically when Start Date changes
+  const handleStartDateChange = (e) => {
+    const newStart = e.target.value;
+    setStartDate(newStart);
+
+    if (!newStart) return;
+
+    const dateObj = new Date(newStart);
+    if (isNaN(dateObj.getTime())) return;
+
+    const year = dateObj.getFullYear().toString();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    
+    // Calculate week of the month (e.g., days 1-7 = Week 1, 8-14 = Week 2, etc.)
+    const dayOfMonth = dateObj.getDate();
+    const weekNumber = Math.min(Math.ceil(dayOfMonth / 7), 4);
+
+    // Automatically calculate a default 6-day end date if needed
+    const endObj = new Date(dateObj);
+    endObj.setDate(dateObj.getDate() + 5);
+    const calculatedEndDate = endObj.toISOString().split("T")[0];
+    setEndDate(calculatedEndDate);
+
+    // Send the updated filters back to the dashboard parent
+    if (onDateChange) {
+      onDateChange({
+        year,
+        month,
+        weekNumber,
+        start_date: newStart,
+        end_date: calculatedEndDate,
+      });
+    }
+  };
+
+  const handleEndDateChange = (e) => {
+    const newEnd = e.target.value;
+    setEndDate(newEnd);
+    
+    if (onDateChange && startDate) {
+      const dateObj = new Date(startDate);
+      onDateChange({
+        year: dateObj.getFullYear().toString(),
+        month: String(dateObj.getMonth() + 1).padStart(2, "0"),
+        weekNumber: currentWeekNumber,
+        start_date: startDate,
+        end_date: newEnd,
+      });
+    }
+  };
 
   const formatDisplayDate = (isoString) => {
     if (!isoString) return ".... / .... / ....";
@@ -85,7 +136,7 @@ export const WeeklyHeader = ({ planData, currentWeekNumber }) => {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={handleStartDateChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
@@ -117,7 +168,7 @@ export const WeeklyHeader = ({ planData, currentWeekNumber }) => {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={handleEndDateChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
