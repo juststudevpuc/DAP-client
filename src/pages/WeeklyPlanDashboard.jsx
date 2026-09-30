@@ -115,9 +115,7 @@ export const WeeklyPlanDashboard = () => {
       if (list.length > 0) {
         setPlanData(list[0]);
       } else {
-        const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
-        const startDay = Math.min((week - 1) * 7 + 1, daysInMonth);
-        const formattedStartDate = `${year}-${month}-${String(startDay).padStart(2, "0")}`;
+        const formattedStartDate = getMondayOfWeek(year, month, week);
 
         const created = await apiService.createWeeklyPlan({
           week_number: Number(week),
@@ -479,18 +477,33 @@ export const WeeklyPlanDashboard = () => {
     );
   }
 
-  // Helper: Get the Monday date string (YYYY-MM-DD) for a given year, month, and week
+  // Helper: Calculate Monday (YYYY-MM-DD) for a given Year, Month, and Week
+  // Rule: Sunday is a holiday. If the 1st is Sunday (0), Week 1 starts on Monday the 2nd.
   const getMondayOfWeek = (y, m, w) => {
-    const daysInMonth = new Date(Number(y), Number(m), 0).getDate();
-    const startDay = Math.min((w - 1) * 7 + 1, daysInMonth);
-    const d = new Date(Number(y), Number(m) - 1, startDay);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Snap to Monday
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split("T")[0];
+    const yearNum = Number(y);
+    const monthNum = Number(m);
+
+    const firstOfMonth = new Date(yearNum, monthNum - 1, 1);
+    
+    // If the 1st is Sunday (0), skip it and start on Monday the 2nd
+    if (firstOfMonth.getDay() === 0) {
+      firstOfMonth.setDate(2);
+    }
+
+    const dayOfWeek = firstOfMonth.getDay(); // 1 = Mon ... 6 = Sat
+    const diffToMonday = 1 - dayOfWeek;
+    const week1Monday = new Date(firstOfMonth);
+    week1Monday.setDate(firstOfMonth.getDate() + diffToMonday);
+
+    const targetMonday = new Date(week1Monday);
+    targetMonday.setDate(week1Monday.getDate() + (Number(w) - 1) * 7);
+
+    const yyyy = targetMonday.getFullYear();
+    const mm = String(targetMonday.getMonth() + 1).padStart(2, "0");
+    const dd = String(targetMonday.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   };
 
-  // Only show Week 5 if its Monday is NOT already claimed by next month's Week 1
   const nextMonth = Number(filterMonth) === 12 ? 1 : Number(filterMonth) + 1;
   const nextMonthYear =
     Number(filterMonth) === 12 ? Number(filterYear) + 1 : Number(filterYear);
@@ -553,7 +566,7 @@ export const WeeklyPlanDashboard = () => {
             value={filterMonth}
             onChange={(e) => {
               setFilterMonth(e.target.value);
-              setSelectedWeek(1);
+              setSelectedWeek(1); // Auto reset to Week 1 on month change
             }}
             className="h-8 text-xs border border-gray-300 rounded-md px-2 bg-white"
           >
@@ -571,9 +584,6 @@ export const WeeklyPlanDashboard = () => {
             <option value="12">12 - December</option>
           </select>
 
-          <label className="text-xs font-semibold text-gray-700 ml-2">
-            View Week:
-          </label>
           <label className="text-xs font-semibold text-gray-700 ml-2">
             View Week:
           </label>

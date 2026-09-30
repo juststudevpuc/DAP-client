@@ -35,7 +35,7 @@ export const WeeklyHeader = ({ planData, currentWeekNumber, onDateChange }) => {
 
     // Calculate week of the month (days 1-7 = Week 1 ... 29-31 = Week 5)
     const dayOfMonth = dateObj.getDate();
-    const weekNumber = Math.min(Math.ceil(dayOfMonth / 7), 5);
+    const weekNumber = Math.min(Math.ceil(dayOfMonth / 7), 5); // Using 5 to support 5th week
 
     // Automatically calculate a default 6-day end date if needed
     const endObj = new Date(dateObj);
