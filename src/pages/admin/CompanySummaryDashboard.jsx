@@ -9,9 +9,17 @@ import { RingLoader } from "react-spinners";
 import Swal from "sweetalert2";
 
 export const CompanySummaryDashboard = () => {
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(9);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  const [year, setYear] = useState(currentYear);
+  const [month, setMonth] = useState(currentMonth);
   const [weekNumber, setWeekNumber] = useState(1);
+
+  // Custom date range states
+  const [startDate, setStartDate] = useState("2026-09-22");
+  const [endDate, setEndDate] = useState("2026-09-27");
+  
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -29,7 +37,13 @@ export const CompanySummaryDashboard = () => {
   const fetchSummary = async () => {
     setLoading(true);
     try {
-      const res = await apiService.getCompanySummary({ year, month, week_number: weekNumber });
+      const res = await apiService.getCompanySummary({ 
+        year,
+        month,
+        week_number: weekNumber,
+        start_date: startDate, 
+        end_date: endDate 
+      });
       setData(res);
       
       // Pre-fill notes from backend response if available
@@ -53,7 +67,7 @@ export const CompanySummaryDashboard = () => {
 
   useEffect(() => { 
     fetchSummary(); 
-  }, [year, month, weekNumber]);
+  }, [year, month, weekNumber, startDate, endDate]);
 
   const handleNotesChange = (field, value) => {
     setNotes((prev) => ({ ...prev, [field]: value }));
@@ -67,6 +81,8 @@ export const CompanySummaryDashboard = () => {
         year,
         month,
         week_number: weekNumber,
+        start_date: startDate,
+        end_date: endDate,
         ...notes,
       };
       const response = await apiService.saveCompanySummaryNotes(payload);
@@ -102,7 +118,7 @@ export const CompanySummaryDashboard = () => {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [canvas.width, canvas.height], compress: true });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save(`Company_Summary_Week_${weekNumber}_M${month}_${year}.pdf`);
+      pdf.save(`Company_Summary_${startDate}_to_${endDate}.pdf`);
     } catch (err) {
       console.error("PDF export failed", err);
     } finally {
@@ -115,7 +131,6 @@ export const CompanySummaryDashboard = () => {
     const node = templateRef.current;
     if (!node) return;
 
-    // 💡 Show professional loading popup immediately
     Swal.fire({
       title: "Preparing Report...",
       text: "Verifying styles and rendering snapshot for Telegram...",
@@ -127,7 +142,6 @@ export const CompanySummaryDashboard = () => {
 
     setIsExporting(true);
     try {
-      // 💡 CRITICAL: Ensure all custom fonts and layout CSS are fully loaded before capture
       await document.fonts.ready;
       await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -142,14 +156,15 @@ export const CompanySummaryDashboard = () => {
 
         const formData = new FormData();
         formData.append("image", blob, "company_summary.png");
-        formData.append("week_number", Number(weekNumber));
-        formData.append("month", Number(month));
         formData.append("year", Number(year));
+        formData.append("month", Number(month));
+        formData.append("week_number", Number(weekNumber));
+        formData.append("start_date", startDate);
+        formData.append("end_date", endDate);
         
         const ordinalWeek = weekNumber === 1 ? '1st' : weekNumber === 2 ? '2nd' : weekNumber === 3 ? '3rd' : '4th';
-        formData.append("caption", `${ordinalWeek} weekly action plan summary report`);
+        formData.append("caption", `${ordinalWeek} weekly action plan summary report (${startDate} to ${endDate})`);
 
-        // Update modal status for upload
         Swal.update({
           title: "Sending to Telegram...",
           text: "Uploading fully-styled report to your channel.",
@@ -157,7 +172,6 @@ export const CompanySummaryDashboard = () => {
 
         const response = await apiService.sendWeeklyImagesToTelegram(formData);
 
-        // 💡 Crisp success notification
         Swal.fire({
           icon: "success",
           title: "Sent Successfully!",
@@ -186,18 +200,19 @@ export const CompanySummaryDashboard = () => {
 
   return (
     <div className="p-6 w-full mx-auto space-y-6 bg-white min-h-screen">
-      {/* Header & Controls Bar */}
+      {/* Header & Controls Bar with Dropdowns and Date Pickers */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight">
             Company Performance Summary
           </h1>
           <p className="text-xs text-gray-500">
-            Aggregated team deliverables across all active trainers.
+            Aggregated team deliverables across custom date ranges.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Year Dropdown */}
           <div className="flex flex-col">
             <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Year</span>
             <select
@@ -207,9 +222,11 @@ export const CompanySummaryDashboard = () => {
             >
               <option value={2025}>2025</option>
               <option value={2026}>2026</option>
+              <option value={2027}>2027</option>
             </select>
           </div>
 
+          {/* Month Dropdown */}
           <div className="flex flex-col">
             <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Month</span>
             <select
@@ -223,6 +240,7 @@ export const CompanySummaryDashboard = () => {
             </select>
           </div>
 
+          {/* Week Dropdown */}
           <div className="flex flex-col">
             <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Week</span>
             <select
@@ -236,11 +254,32 @@ export const CompanySummaryDashboard = () => {
             </select>
           </div>
 
+          {/* From Date Picker */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">From Date</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 px-2.5 text-xs border border-gray-300 rounded-md bg-white"
+            />
+          </div>
+
+          {/* To Date Picker */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">To Date</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 px-2.5 text-xs border border-gray-300 rounded-md bg-white"
+            />
+          </div>
+
           <div className="flex items-center gap-2 pt-4">
             <Button variant="outline" size="sm" onClick={fetchSummary} className="h-9 text-xs">
               🔄 Refresh
             </Button>
-            {/* 💾 Save Notes Button (Hidden during print/export) */}
             <Button 
               onClick={handleSaveNotes} 
               disabled={isSaving || loading} 
@@ -378,7 +417,7 @@ export const CompanySummaryDashboard = () => {
                   ) : (
                     <tr>
                       <td colSpan={4} className="py-6 text-center text-gray-400">
-                        No team member contributions found for this period.
+                        No team member contributions found for this date range.
                       </td>
                     </tr>
                   )}

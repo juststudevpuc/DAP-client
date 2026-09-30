@@ -3,7 +3,19 @@ import { forwardRef } from "react";
 export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, weekNumber, notes, onNotesChange }, ref) => {
   const summary = summaryData?.summary;
   
+  // 💡 Support both custom date ranges if provided by backend, or fallback to default calculation
   const calculateDateRange = (y, m, w) => {
+    if (summaryData?.date_range?.start && summaryData?.date_range?.end) {
+      const formatDateStr = (dStr) => {
+        const d = new Date(dStr);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      };
+      return `${formatDateStr(summaryData.date_range.start)} to ${formatDateStr(summaryData.date_range.end)}`;
+    }
+
     try {
       const startDayNum = (w - 1) * 7 + 1;
       const startDate = new Date(y, m - 1, startDayNum);
@@ -49,12 +61,12 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
     lesson_path: catTotals['Provide Lesson (Path)'] || catTotals['lesson_path'] || 0,
   };
 
-  // 💡 Robust graduation breakdown extraction
+  // 💡 Robust graduation breakdown extraction with unique properties
   const gradData = summaryData?.graduation_breakdown || summary?.graduation_breakdown || {};
   const gradBreakdown = {
     certificate: gradData.certificate || 0,
-    hr_policy: gradData.certificate || 0,
-    book: gradData.certificate || 0,
+    hr_policy: gradData.hr_policy || gradData.policy || 0,
+    book: gradData.book || 0,
   };
 
   return (
@@ -176,9 +188,9 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
               <span className="font-bold">{gradBreakdown.certificate}</span>,
               <span className="ml-1">Provided HR</span>
               <span className="font-bold meta-underline text-blue-700">Policy:</span>
-              <span className="font-bold">{gradBreakdown.certificate}</span>,
+              <span className="font-bold">{gradBreakdown.hr_policy}</span>,
               <span className="ml-1">Provided Book:</span>
-              <span className="font-bold">{gradBreakdown.certificate}</span>
+              <span className="font-bold">{gradBreakdown.book}</span>
             </div>
           </li>
         </ol>

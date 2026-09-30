@@ -199,6 +199,13 @@ export const apiService = {
         const response = await apiClient.post('/admin/telegram/auto-alerts', data);
         return response.data;
     },
+            async getCompanySummaryByDateRange(startDate, endDate) {
+        const response = await axios.get('/api/admin/company-summary', {
+            params: { start_date: startDate, end_date: endDate },
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+        },
 };
 
 export default apiClient;
