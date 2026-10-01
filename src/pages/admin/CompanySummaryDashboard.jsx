@@ -19,7 +19,7 @@ export const CompanySummaryDashboard = () => {
   // Custom date range states
   const [startDate, setStartDate] = useState("2026-09-22");
   const [endDate, setEndDate] = useState("2026-09-27");
-  
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -37,15 +37,15 @@ export const CompanySummaryDashboard = () => {
   const fetchSummary = async () => {
     setLoading(true);
     try {
-      const res = await apiService.getCompanySummary({ 
-        year,
-        month,
-        week_number: weekNumber,
-        start_date: startDate, 
-        end_date: endDate 
-      });
+      const payload = { year };
+      if (month !== "all") payload.month = month;
+      if (weekNumber !== "all") payload.week_number = weekNumber;
+      if (startDate) payload.start_date = startDate;
+      if (endDate) payload.end_date = endDate;
+
+      const res = await apiService.getCompanySummary(payload);
       setData(res);
-      
+
       // Pre-fill notes from backend response if available
       if (res?.notes) {
         setNotes({
@@ -55,7 +55,12 @@ export const CompanySummaryDashboard = () => {
           what_is_next: res.notes.what_is_next || "",
         });
       } else {
-        setNotes({ what_worked: "", what_didnt_work: "", what_to_improve: "", what_is_next: "" });
+        setNotes({
+          what_worked: "",
+          what_didnt_work: "",
+          what_to_improve: "",
+          what_is_next: "",
+        });
       }
     } catch (err) {
       console.error("Failed to load company summary", err);
@@ -65,8 +70,8 @@ export const CompanySummaryDashboard = () => {
     }
   };
 
-  useEffect(() => { 
-    fetchSummary(); 
+  useEffect(() => {
+    fetchSummary();
   }, [year, month, weekNumber, startDate, endDate]);
 
   const handleNotesChange = (field, value) => {
@@ -114,9 +119,19 @@ export const CompanySummaryDashboard = () => {
       await document.fonts.ready;
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [canvas.width, canvas.height], compress: true });
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+        compress: true,
+      });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save(`Company_Summary_${startDate}_to_${endDate}.pdf`);
     } catch (err) {
@@ -145,58 +160,139 @@ export const CompanySummaryDashboard = () => {
       await document.fonts.ready;
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const canvas = await html2canvas(node, { scale: 1.5, useCORS: true, backgroundColor: "#ffffff", logging: false });
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          Swal.fire("Error", "Failed to generate report image snapshot.", "error");
-          setIsExporting(false);
-          return;
-        }
+      const canvas = await html2canvas(node, {
+        scale: 1.5,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
 
-        const formData = new FormData();
-        formData.append("image", blob, "company_summary.png");
-        formData.append("year", Number(year));
-        formData.append("month", Number(month));
-        formData.append("week_number", Number(weekNumber));
-        formData.append("start_date", startDate);
-        formData.append("end_date", endDate);
-        
-        const ordinalWeek = weekNumber === 1 ? '1st' : weekNumber === 2 ? '2nd' : weekNumber === 3 ? '3rd' : '4th';
-        formData.append("caption", `${ordinalWeek} weekly action plan summary report (${startDate} to ${endDate})`);
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) {
+            Swal.fire(
+              "Error",
+              "Failed to generate report image snapshot.",
+              "error",
+            );
+            setIsExporting(false);
+            return;
+          }
 
-        Swal.update({
-          title: "Sending to Telegram...",
-          text: "Uploading fully-styled report to your channel.",
-        });
+          const formData = new FormData();
+          formData.append("image", blob, "company_summary.png");
+          formData.append("year", Number(year));
+          formData.append("month", Number(month));
+          formData.append("week_number", Number(weekNumber));
+          formData.append("start_date", startDate);
+          formData.append("end_date", endDate);
 
-        const response = await apiService.sendWeeklyImagesToTelegram(formData);
+          const ordinalWeek =
+            weekNumber === 1
+              ? "1st"
+              : weekNumber === 2
+                ? "2nd"
+                : weekNumber === 3
+                  ? "3rd"
+                  : "4th";
+          formData.append(
+            "caption",
+            `${ordinalWeek} weekly action plan summary report (${startDate} to ${endDate})`,
+          );
 
-        Swal.fire({
-          icon: "success",
-          title: "Sent Successfully!",
-          text: response.message || "The summary report has been sent to Telegram with full styles!",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+          Swal.update({
+            title: "Sending to Telegram...",
+            text: "Uploading fully-styled report to your channel.",
+          });
 
-      }, "image/jpeg", 0.95);
+          const response =
+            await apiService.sendWeeklyImagesToTelegram(formData);
 
+          Swal.fire({
+            icon: "success",
+            title: "Sent Successfully!",
+            text:
+              response.message ||
+              "The summary report has been sent to Telegram with full styles!",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        },
+        "image/jpeg",
+        0.95,
+      );
     } catch (err) {
       console.error("Telegram send failed", err);
       Swal.fire({
         icon: "error",
         title: "Send Failed",
-        text: err.response?.data?.message || "Failed to send report to Telegram. Please try again.",
+        text:
+          err.response?.data?.message ||
+          "Failed to send report to Telegram. Please try again.",
       });
     } finally {
       setIsExporting(false);
     }
   };
-  
 
   const summary = data?.summary;
   const members = data?.members || [];
+
+  // Add this right above the return (...) statement
+  const getMondayOfWeek = (y, m, w) => {
+    const yearNum = Number(y);
+    const monthNum = Number(m);
+
+    const firstOfMonth = new Date(yearNum, monthNum - 1, 1);
+    if (firstOfMonth.getDay() === 0) {
+      firstOfMonth.setDate(2);
+    }
+
+    const dayOfWeek = firstOfMonth.getDay();
+    const diffToMonday = 1 - dayOfWeek;
+    const week1Monday = new Date(firstOfMonth);
+    week1Monday.setDate(firstOfMonth.getDate() + diffToMonday);
+
+    const targetMonday = new Date(week1Monday);
+    targetMonday.setDate(week1Monday.getDate() + (Number(w) - 1) * 7);
+
+    const yyyy = targetMonday.getFullYear();
+    const mm = String(targetMonday.getMonth() + 1).padStart(2, "0");
+    const dd = String(targetMonday.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // 3. Only calculate the 5th week if a specific month is selected
+  let hasFifthWeek = false;
+  if (month !== "all") {
+    const nextMonth = Number(month) === 12 ? 1 : Number(month) + 1;
+    const nextMonthYear =
+      Number(month) === 12 ? Number(year) + 1 : Number(year);
+    hasFifthWeek =
+      getMondayOfWeek(year, month, 5) !==
+      getMondayOfWeek(nextMonthYear, nextMonth, 1);
+  }
+
+  // Auto-update the From Date and To Date pickers whenever dropdowns change
+  useEffect(() => {
+    if (month !== "all" && weekNumber !== "all") {
+      const monday = getMondayOfWeek(year, month, weekNumber);
+
+      const startObj = new Date(monday);
+      const endObj = new Date(startObj);
+      endObj.setDate(startObj.getDate() + 6); // Add 6 days to get to Sunday
+
+      const formatDate = (date) => {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      };
+
+      setStartDate(monday);
+      setEndDate(formatDate(endObj));
+    }
+  }, [year, month, weekNumber]);
 
   return (
     <div className="p-6 w-full mx-auto space-y-6 bg-white min-h-screen">
@@ -214,7 +310,9 @@ export const CompanySummaryDashboard = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Year Dropdown */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Year</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">
+              Year
+            </span>
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
@@ -228,35 +326,56 @@ export const CompanySummaryDashboard = () => {
 
           {/* Month Dropdown */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Month</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">
+              Month
+            </span>
             <select
               value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setMonth(val === "all" ? "all" : Number(val));
+                if (val === "all") setWeekNumber("all"); // Auto-select all weeks if all months is chosen
+              }}
               className="h-9 px-2.5 text-xs border border-gray-300 rounded-md bg-white"
             >
+              <option value="all">🗓 All Months (Yearly)</option>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
+                <option key={m} value={m}>
+                  {String(m).padStart(2, "0")}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Week Dropdown */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Week</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">
+              Week
+            </span>
             <select
               value={weekNumber}
-              onChange={(e) => setWeekNumber(Number(e.target.value))}
-              className="h-9 px-2.5 text-xs border border-gray-300 rounded-md bg-white"
+              onChange={(e) =>
+                setWeekNumber(
+                  e.target.value === "all" ? "all" : Number(e.target.value),
+                )
+              }
+              disabled={month === "all"} // Disable week selection if viewing entire year
+              className="h-9 px-2.5 text-xs border border-gray-300 rounded-md bg-white disabled:opacity-50"
             >
-              {[1, 2, 3, 4, 5].map((w) => (
-                <option key={w} value={w}>Week {w}</option>
-              ))}
+              <option value="all">📊 All Weeks (Monthly)</option>
+              <option value={1}>Week 1</option>
+              <option value={2}>Week 2</option>
+              <option value={3}>Week 3</option>
+              <option value={4}>Week 4</option>
+              {hasFifthWeek && <option value={5}>Week 5</option>}
             </select>
           </div>
 
           {/* From Date Picker */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">From Date</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">
+              From Date
+            </span>
             <input
               type="date"
               value={startDate}
@@ -267,7 +386,9 @@ export const CompanySummaryDashboard = () => {
 
           {/* To Date Picker */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">To Date</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase mb-1">
+              To Date
+            </span>
             <input
               type="date"
               value={endDate}
@@ -277,20 +398,33 @@ export const CompanySummaryDashboard = () => {
           </div>
 
           <div className="flex items-center gap-2 pt-4">
-            <Button variant="outline" size="sm" onClick={fetchSummary} className="h-9 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchSummary}
+              className="h-9 text-xs"
+            >
               🔄 Refresh
             </Button>
-            <Button 
-              onClick={handleSaveNotes} 
-              disabled={isSaving || loading} 
+            <Button
+              onClick={handleSaveNotes}
+              disabled={isSaving || loading}
               className="h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white print:hidden"
             >
               {isSaving ? "Saving..." : "💾 Save Notes"}
             </Button>
-            <Button onClick={handleExportPdf} disabled={isExporting || loading} className="h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              onClick={handleExportPdf}
+              disabled={isExporting || loading}
+              className="h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            >
               Download PDF
             </Button>
-            <Button onClick={handleSendToTelegram} disabled={isExporting || loading} className="h-9 text-xs bg-sky-500 hover:bg-sky-600 text-white">
+            <Button
+              onClick={handleSendToTelegram}
+              disabled={isExporting || loading}
+              className="h-9 text-xs bg-sky-500 hover:bg-sky-600 text-white"
+            >
               Send to Telegram
             </Button>
           </div>
@@ -390,9 +524,15 @@ export const CompanySummaryDashboard = () => {
                 <thead className="bg-gray-50 border-b border-gray-200 text-[10px] font-semibold text-gray-500 uppercase">
                   <tr>
                     <th className="py-2.5 px-4">Trainer</th>
-                    <th className="py-2.5 px-4 text-center">Training (Act / Tgt)</th>
-                    <th className="py-2.5 px-4 text-center">Onboarding (Act / Tgt)</th>
-                    <th className="py-2.5 px-4 text-center">Graduated (Act / Tgt)</th>
+                    <th className="py-2.5 px-4 text-center">
+                      Training (Act / Tgt)
+                    </th>
+                    <th className="py-2.5 px-4 text-center">
+                      Onboarding (Act / Tgt)
+                    </th>
+                    <th className="py-2.5 px-4 text-center">
+                      Graduated (Act / Tgt)
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -400,23 +540,39 @@ export const CompanySummaryDashboard = () => {
                     members.map((m) => (
                       <tr key={m.user_id} className="hover:bg-gray-50/50">
                         <td className="py-3 px-4">
-                          <p className="font-semibold text-gray-800">{m.user_name}</p>
-                          <p className="text-[10px] text-gray-400">{m.user_email}</p>
+                          <p className="font-semibold text-gray-800">
+                            {m.user_name}
+                          </p>
+                          <p className="text-[10px] text-gray-400">
+                            {m.user_email}
+                          </p>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-blue-600">{m.actual_training}</span> / {m.target_training}
+                          <span className="font-bold text-blue-600">
+                            {m.actual_training}
+                          </span>{" "}
+                          / {m.target_training}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-emerald-600">{m.actual_onboarding}</span> / {m.target_onboarding}
+                          <span className="font-bold text-emerald-600">
+                            {m.actual_onboarding}
+                          </span>{" "}
+                          / {m.target_onboarding}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="font-bold text-purple-600">{m.actual_graduated}</span> / {m.target_graduated}
+                          <span className="font-bold text-purple-600">
+                            {m.actual_graduated}
+                          </span>{" "}
+                          / {m.target_graduated}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-gray-400">
+                      <td
+                        colSpan={4}
+                        className="py-6 text-center text-gray-400"
+                      >
                         No team member contributions found for this date range.
                       </td>
                     </tr>

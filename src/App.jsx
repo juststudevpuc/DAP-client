@@ -17,19 +17,10 @@ import { LandingLayout } from "./components/layout/LandingLayout";
 import { Portfolio } from "./pages/PortfolioPage";
 import { ContactUs } from "./pages/Contact-us-Page";
 import { AdminSettingsPage } from "./pages/super-admin/AdminSettingsPage";
+import Dashboard from "./pages/Dashboard";
 
 // Placeholder Pages (Replace with dedicated component files when ready)
-const MainDashboard = () => (
-  <div className="p-8">
-    <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
-    <p className="text-sm text-gray-500 mt-1">
-      Welcome back to your CheckinMe workspace.
-    </p>
-    <p className="text-sm text-gray-500 mt-1">
-      It's pending in development tasks
-    </p>
-  </div>
-);
+
 
 export default function App() {
   return (
@@ -52,7 +43,7 @@ export default function App() {
         {/* --- Authenticated Routes (All Logged-in Users) --- */}
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<MainDashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/weekly-plan" element={<WeeklyPlanDashboard />} />
 
             {/* --- Admin & Super Admin Shared Routes --- */}

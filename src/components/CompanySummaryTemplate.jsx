@@ -2,8 +2,8 @@ import { forwardRef } from "react";
 
 export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, weekNumber, notes, onNotesChange }, ref) => {
   const summary = summaryData?.summary;
+  const members = summaryData?.members || []; // 👈 ទាញយកបញ្ជីឈ្មោះ User ពី Backend
   
-  // 💡 Support both custom date ranges if provided by backend, or fallback to default calculation
   const calculateDateRange = (y, m, w) => {
     if (summaryData?.date_range?.start && summaryData?.date_range?.end) {
       const formatDateStr = (dStr) => {
@@ -16,26 +16,44 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
       return `${formatDateStr(summaryData.date_range.start)} to ${formatDateStr(summaryData.date_range.end)}`;
     }
 
+    if (m === "all") return `Entire Year of ${y}`;
+    if (w === "all") return `Entire Month of ${String(m).padStart(2, '0')}/${y}`;
+
     try {
-      const startDayNum = (w - 1) * 7 + 1;
-      const startDate = new Date(y, m - 1, startDayNum);
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 5);
+      const yearNum = Number(y);
+      const monthNum = Number(m);
+
+      const firstOfMonth = new Date(yearNum, monthNum - 1, 1);
+      
+      if (firstOfMonth.getDay() === 0) {
+        firstOfMonth.setDate(2);
+      }
+
+      const dayOfWeek = firstOfMonth.getDay(); 
+      const diffToMonday = 1 - dayOfWeek;
+      const week1Monday = new Date(firstOfMonth);
+      week1Monday.setDate(firstOfMonth.getDate() + diffToMonday);
+
+      const targetMonday = new Date(week1Monday);
+      targetMonday.setDate(week1Monday.getDate() + (Number(w) - 1) * 7);
+
+      const targetSunday = new Date(targetMonday);
+      targetSunday.setDate(targetMonday.getDate() + 6);
+
       const formatDate = (date) => {
         const dd = String(date.getDate()).padStart(2, '0');
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const yyyy = date.getFullYear();
         return `${dd}/${mm}/${yyyy}`;
       };
-      return `${formatDate(startDate)} to ${formatDate(endDate)}`;
+      return `${formatDate(targetMonday)} to ${formatDate(targetSunday)}`;
     } catch {
-      return "15/09/2026 to 20/09/2026";
+      return "N/A";
     }
   };
 
   const dynamicDateRange = calculateDateRange(year, month, weekNumber);
 
-  // Guaranteed target defaults
   const apiTrainingTarget = Number(summary?.targets?.training);
   const apiOnboardingTarget = Number(summary?.targets?.onboarding);
   const apiGraduatedTarget = Number(summary?.targets?.graduated);
@@ -52,21 +70,65 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
   const onboardingPercent = targets.onboarding > 0 ? ((actuals.onboarding / targets.onboarding) * 100).toFixed(0) : 0;
   const graduatedPercent = targets.graduated > 0 ? ((actuals.graduated / targets.graduated) * 100).toFixed(0) : 0;
 
-  // 💡 Robust extraction checking all possible nested backend keys
-  const catTotals = summaryData?.category_totals || summary?.category_totals || {};
+  const catTotals = summary?.category_totals || {};
   const modules = {
-    company_info: catTotals['Company Information'] || catTotals['company_info'] || 0,
-    system_analysis: catTotals['System Analysis'] || catTotals['system_analysis'] || 0,
-    hr_policy: catTotals['Configure HR Policy'] || catTotals['hr_policy'] || 0,
-    lesson_path: catTotals['Provide Lesson (Path)'] || catTotals['lesson_path'] || 0,
+    company_info: catTotals['Company Information'] || 0,
+    system_analysis: catTotals['System Analysis'] || 0,
+    hr_policy: catTotals['Configure HR Policy'] || 0,
+    lesson_path: catTotals['Provide Lesson (Path)'] || 0,
   };
 
-  // 💡 Robust graduation breakdown extraction with unique properties
-  const gradData = summaryData?.graduation_breakdown || summary?.graduation_breakdown || {};
+  const gradData = summary?.graduation_breakdown || {};
   const gradBreakdown = {
     certificate: gradData.certificate || 0,
-    hr_policy: gradData.hr_policy || gradData.policy || 0,
+    hr_policy: gradData.hr_policy || 0,
     book: gradData.book || 0,
+  };
+
+  // 💡 ថ្មី៖ Hover Tooltip Component សម្រាប់បង្ហាញទិន្នន័យ User ពេលដាក់ Mouse ពីលើ
+  const HoverTooltip = ({ total, dataKey, subKey }) => {
+    // ស្វែងរក User ណាដែលមានទិន្នន័យធំជាង ០ សម្រាប់ជួរនេះ
+    const activeMembers = members.filter(m => {
+      if (dataKey === 'actual_training') return m.actual_training > 0;
+      if (dataKey === 'delays_cancels') return m.delays_cancels > 0;
+      if (dataKey === 'actual_onboarding') return m.actual_onboarding > 0;
+      if (dataKey === 'actual_graduated') return m.actual_graduated > 0;
+      if (dataKey === 'category_totals') return m.category_totals?.[subKey] > 0;
+      if (dataKey === 'graduation_breakdown') return m.graduation_breakdown?.[subKey] > 0;
+      return false;
+    });
+
+    if (activeMembers.length === 0 || total === 0) {
+      return <span className="font-bold">{total}</span>;
+    }
+
+    return (
+      <div className="relative group inline-block cursor-help ml-1">
+        <span className="font-bold border-b border-dashed border-blue-400 text-blue-700 pb-[1px]">{total}</span>
+        
+        {/* Tooltip Popup (ប្រើ print:hidden ដើម្បីកុំឱ្យលេចចេញពេល Print ជា PDF) */}
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col min-w-[160px] max-w-[250px] bg-gray-900 text-white text-[11px] font-sans rounded p-2 z-50 print:hidden shadow-xl">
+           <div className="font-bold border-b border-gray-700 pb-1 mb-1 text-center text-gray-300">Staff Contributions</div>
+           {activeMembers.map(m => {
+              let val = 0;
+              if (dataKey === 'actual_training') val = m.actual_training;
+              else if (dataKey === 'delays_cancels') val = m.delays_cancels;
+              else if (dataKey === 'actual_onboarding') val = m.actual_onboarding;
+              else if (dataKey === 'actual_graduated') val = m.actual_graduated;
+              else if (dataKey === 'category_totals') val = m.category_totals?.[subKey];
+              else if (dataKey === 'graduation_breakdown') val = m.graduation_breakdown?.[subKey];
+
+              return (
+                <div key={m.user_id} className="flex justify-between items-center py-0.5 gap-4">
+                   <span className="truncate">{m.user_name}</span>
+                   <span className="font-bold text-blue-300">{val}</span>
+                </div>
+              );
+           })}
+           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -109,10 +171,10 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
           <div className="flex items-center gap-2">
             <div className="w-[160px] flex items-center gap-2">
               <img
-            src="/checkinme-logo.jpg"
-            alt="Hero Banner"
-            className="w-6 h-6"
-          />
+                src="/checkinme-logo.jpg"
+                alt="Hero Banner"
+                className="w-6 h-6"
+              />
               <div>
                 <div className="flex items-center gap-0.5 font-black text-blue-900 text-sm tracking-tight">
                   CheckInMe<span className="text-[9px] text-blue-600 align-super">®</span>
@@ -134,7 +196,7 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
           <div className="grid grid-cols-3 gap-6">
             <div><span className="text-gray-800">Team: </span><span className="font-bold meta-underline">វិជ្ជាជីវៈបណ្តុះបណ្តាលព័ន្ធ</span></div>
             <div><span className="text-gray-800">Date: </span><span className="font-bold meta-underline">{dynamicDateRange}</span></div>
-            <div><span className="text-gray-800">Week/សប្តាហ៍: </span><span className="font-bold meta-underline">{weekNumber}</span></div>
+            <div><span className="text-gray-800">Week/សប្តាហ៍: </span><span className="font-bold meta-underline">{weekNumber === "all" ? "Total/សរុប" : weekNumber}</span></div>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
@@ -152,45 +214,53 @@ export const CompanySummaryTemplate = forwardRef(({ summaryData, year, month, we
           <li>
             <div className="flex items-baseline gap-1">
               <span>ប្រកាស Training/ បានបញ្ចប់:</span>
-              <span className="font-bold ml-1">{actuals.training}</span>
-              <span className="font-bold">({trainingPercent}%)</span>
+              <HoverTooltip total={actuals.training} dataKey="actual_training" />
+              <span className="font-bold ml-1">({trainingPercent}%)</span>
             </div>
-            <div className="pl-6 mt-0.5">Postpone Training: <span className="font-bold">{actuals.delays_cancels}</span></div>
+            <div className="pl-6 mt-0.5 flex items-baseline">
+              Postpone Training: 
+              <HoverTooltip total={actuals.delays_cancels} dataKey="delays_cancels" />
+            </div>
           </li>
 
           <li>
             <div className="flex items-baseline gap-1">
               <span>ប្រកាស Completed Success Onboarding Session/ បានបញ្ចប់:</span>
-              <span className="font-bold ml-1">{actuals.onboarding}</span>
-              <span className="font-bold">({onboardingPercent}%)</span>
+              <HoverTooltip total={actuals.onboarding} dataKey="actual_onboarding" />
+              <span className="font-bold ml-1">({onboardingPercent}%)</span>
             </div>
-            <div className="pl-6 mt-0.5 flex flex-wrap gap-x-1 text-gray-800">
+            <div className="pl-6 mt-0.5 flex flex-wrap gap-x-1 items-baseline text-gray-800">
               <span>Company's information:</span>
-              <span className="font-bold meta-underline text-blue-700">{modules.company_info}</span>,
+              <HoverTooltip total={modules.company_info} dataKey="category_totals" subKey="company_info" />,
+              
               <span className="ml-1">System Analysis:</span>
-              <span className="font-bold meta-underline text-blue-700">{modules.system_analysis}</span>,
+              <HoverTooltip total={modules.system_analysis} dataKey="category_totals" subKey="system_analysis" />,
+              
               <span className="ml-1">Configure HR Policy:</span>
-              <span className="font-bold meta-underline text-blue-700">{modules.hr_policy}</span>,
+              <HoverTooltip total={modules.hr_policy} dataKey="category_totals" subKey="hr_policy" />,
+              
               <span className="ml-1">Provide Lesson(Path):</span>
-              <span className="font-bold meta-underline text-blue-700">{modules.lesson_path}</span>
+              <HoverTooltip total={modules.lesson_path} dataKey="category_totals" subKey="lesson_path" />
             </div>
           </li>
 
           <li>
             <div className="flex items-baseline gap-1">
               <span>ប្រកាស Customer Graduated/ បានបញ្ចប់:</span>
-              <span className="font-bold ml-1">{actuals.graduated}</span>
-              <span className="font-bold">({graduatedPercent}%)</span>
+              <HoverTooltip total={actuals.graduated} dataKey="actual_graduated" />
+              <span className="font-bold ml-1">({graduatedPercent}%)</span>
             </div>
-            <div className="pl-6 mt-0.5 flex flex-wrap gap-x-1 text-gray-800">
+            <div className="pl-6 mt-0.5 flex flex-wrap gap-x-1 items-baseline text-gray-800">
               <span>Provided</span>
-              <span className="font-bold meta-underline text-blue-700">Certificate:</span>
-              <span className="font-bold">{gradBreakdown.certificate}</span>,
+              <span className="font-bold meta-underline text-blue-700 ml-1">Certificate:</span>
+              <HoverTooltip total={gradBreakdown.certificate} dataKey="graduation_breakdown" subKey="certificate" />,
+              
               <span className="ml-1">Provided HR</span>
-              <span className="font-bold meta-underline text-blue-700">Policy:</span>
-              <span className="font-bold">{gradBreakdown.hr_policy}</span>,
+              <span className="font-bold meta-underline text-blue-700 ml-1">Policy:</span>
+              <HoverTooltip total={gradBreakdown.hr_policy} dataKey="graduation_breakdown" subKey="hr_policy" />,
+              
               <span className="ml-1">Provided Book:</span>
-              <span className="font-bold">{gradBreakdown.book}</span>
+              <HoverTooltip total={gradBreakdown.book} dataKey="graduation_breakdown" subKey="book" />
             </div>
           </li>
         </ol>
