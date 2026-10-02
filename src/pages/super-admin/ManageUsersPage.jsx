@@ -6,6 +6,30 @@ import { Button } from "@/components/ui/button";
 import Swal from "sweetalert2";
 import { RingLoader } from "react-spinners";
 
+// 💡 Add these missing helper functions
+const passwordStrength = (password) => {
+  if (!password) return 0;
+  let score = 0;
+  if (password.length > 5) score += 1; // Basic length
+  if (password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password)) score += 1; // Letters & Numbers
+  if (password.length >= 8 && /[^A-Za-z0-9]/.test(password)) score += 1; // Special characters
+  return Math.min(score, 3);
+};
+
+const strengthColor = (score) => {
+  if (score === 1) return "bg-red-500";
+  if (score === 2) return "bg-amber-500";
+  if (score === 3) return "bg-emerald-500";
+  return "bg-gray-200";
+};
+
+const strengthLabel = (score) => {
+  if (score === 1) return "Weak";
+  if (score === 2) return "Medium";
+  if (score === 3) return "Strong";
+  return "";
+};
+
 const ROLE_STYLES = {
   super_admin: { badge: "bg-violet-50 text-violet-700 border-violet-200", dot: "bg-violet-500" },
   admin: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200", dot: "bg-indigo-500" },

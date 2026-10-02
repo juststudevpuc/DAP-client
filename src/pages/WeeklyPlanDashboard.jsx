@@ -479,12 +479,12 @@ export const WeeklyPlanDashboard = () => {
 
   // Helper: Calculate Monday (YYYY-MM-DD) for a given Year, Month, and Week
   // Rule: Sunday is a holiday. If the 1st is Sunday (0), Week 1 starts on Monday the 2nd.
-  const getMondayOfWeek = (y, m, w) => {
+  function getMondayOfWeek(y, m, w) {
     const yearNum = Number(y);
     const monthNum = Number(m);
 
     const firstOfMonth = new Date(yearNum, monthNum - 1, 1);
-    
+
     // If the 1st is Sunday (0), skip it and start on Monday the 2nd
     if (firstOfMonth.getDay() === 0) {
       firstOfMonth.setDate(2);
@@ -502,7 +502,7 @@ export const WeeklyPlanDashboard = () => {
     const mm = String(targetMonday.getMonth() + 1).padStart(2, "0");
     const dd = String(targetMonday.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
-  };
+  }
 
   const nextMonth = Number(filterMonth) === 12 ? 1 : Number(filterMonth) + 1;
   const nextMonthYear =

@@ -20,6 +20,30 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
+// 💡 Helper Functions for Password Strength
+const passwordStrength = (password) => {
+  if (!password) return 0;
+  let score = 0;
+  if (password.length > 5) score += 1;
+  if (password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password)) score += 1;
+  if (password.length >= 8 && /[^A-Za-z0-9]/.test(password)) score += 1;
+  return Math.min(score, 3);
+};
+
+const strengthColor = (score) => {
+  if (score === 1) return "bg-red-500";
+  if (score === 2) return "bg-amber-500";
+  if (score === 3) return "bg-emerald-500";
+  return "bg-gray-200";
+};
+
+const strengthLabel = (score) => {
+  if (score === 1) return "Weak";
+  if (score === 2) return "Medium";
+  if (score === 3) return "Strong";
+  return "";
+};
+
 export function RegisterForm({ className, ...props }) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
@@ -29,11 +53,15 @@ export function RegisterForm({ className, ...props }) {
   const {
     register,
     handleSubmit,
+    watch, // 💡 Added watch to track password input live
     formState: { errors, isSubmitting },
     setError,
   } = useForm({
     resolver: zodResolver(registerSchema),
   });
+
+  // 💡 Watch the password field so the meter updates dynamically
+  const currentPassword = watch("password", "");
 
   const onSubmit = async (data) => {
     try {
@@ -88,17 +116,9 @@ export function RegisterForm({ className, ...props }) {
                   type="text"
                   placeholder="e.g Tep Panhasak"
                   {...register("name")}
-                  className={
-                    errors.name
-                      ? "border-red-500 focus-visible:ring-red-500"
-                      : ""
-                  }
+                  className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {errors.name && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.name.message}
-                  </p>
-                )}
+                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
               </Field>
 
               {/* Email */}
@@ -109,20 +129,11 @@ export function RegisterForm({ className, ...props }) {
                   type="email"
                   placeholder="name@example.com"
                   {...register("email")}
-                  className={
-                    errors.email
-                      ? "border-red-500 focus-visible:ring-red-500"
-                      : ""
-                  }
+                  className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {errors.email && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
+                {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
               </Field>
 
-              {/* Password */}
               {/* Password */}
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -138,25 +149,37 @@ export function RegisterForm({ className, ...props }) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.password.message}
-                  </p>
+                
+                {/* 💡 Dynamic Password Strength Meter */}
+                {currentPassword.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <div className="flex h-1 flex-1 gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className={`h-full flex-1 rounded-full ${
+                            i < passwordStrength(currentPassword)
+                              ? strengthColor(passwordStrength(currentPassword))
+                              : "bg-gray-100"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-400">
+                      {strengthLabel(passwordStrength(currentPassword))}
+                    </span>
+                  </div>
                 )}
+
+                {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
               </Field>
 
               {/* Confirm Password */}
               <Field>
-                <FieldLabel htmlFor="password_confirmation">
-                  Confirm Password
-                </FieldLabel>
+                <FieldLabel htmlFor="password_confirmation">Confirm Password</FieldLabel>
                 <div className="relative">
                   <Input
                     id="password_confirmation"
@@ -169,17 +192,11 @@ export function RegisterForm({ className, ...props }) {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {errors.password_confirmation && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.password_confirmation.message}
-                  </p>
+                  <p className="text-xs text-red-500 mt-1">{errors.password_confirmation.message}</p>
                 )}
               </Field>
 
