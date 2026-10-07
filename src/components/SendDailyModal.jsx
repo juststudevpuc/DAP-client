@@ -46,10 +46,14 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
         state === "done"
           ? "bg-blue-600"
           : state === "active"
-          ? "bg-blue-600 scale-125 ring-4 ring-blue-100"
-          : "bg-gray-200";
+            ? "bg-blue-600 scale-125 ring-4 ring-blue-100"
+            : "bg-gray-200";
       return `<span class="inline-block w-2 h-2 rounded-full transition-all duration-500 ${dotClass}"></span>`;
-    }).join('<span class="w-5 h-0.5 bg-gray-200 mx-1.5 rounded-full overflow-hidden"><span class="block h-full bg-blue-600 rounded-full transition-all duration-500" style="width: ' + (stepIndex > 0 ? "100%" : "0%") + '"></span></span>');
+    }).join(
+      '<span class="w-5 h-0.5 bg-gray-200 mx-1.5 rounded-full overflow-hidden"><span class="block h-full bg-blue-600 rounded-full transition-all duration-500" style="width: ' +
+        (stepIndex > 0 ? "100%" : "0%") +
+        '"></span></span>',
+    );
 
     return `
       <div class="flex flex-col items-center text-center px-2 pt-3 pb-1 animate-in fade-in slide-in-from-bottom-1 duration-300">
@@ -131,7 +135,17 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
         throw new Error(result.message || "Telegram did not confirm delivery.");
       }
 
-      
+      // 💡 ADD THIS: Shows the success checkmark and auto-dismisses the spinner!
+      await Swal.fire({
+        icon: "success",
+        title: "Sent Successfully!",
+        text: "Daily plan sent to Telegram successfully.",
+        showConfirmButton: false,
+        timer: 1800,
+        customClass: {
+          popup: "rounded-2xl shadow-2xl border border-gray-100",
+        },
+      });
 
       onClose();
     } catch (error) {
@@ -140,7 +154,10 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
       Swal.fire({
         icon: "error",
         title: "Send Failed",
-        text: error.response?.data?.message || error.message || "Failed to send images to Telegram. Please try again.",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to send images to Telegram. Please try again.",
         confirmButtonColor: "#ef4444",
         customClass: {
           popup: "rounded-2xl shadow-xl border border-gray-100",
@@ -187,16 +204,16 @@ export const SendDailyModal = ({ isOpen, onClose, onSend }) => {
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onClose} 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
             disabled={loading}
             className="text-xs"
           >
             Cancel
           </Button>
-          
+
           <Button
             size="sm"
             onClick={handleConfirm}
