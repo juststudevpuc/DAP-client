@@ -207,7 +207,7 @@ export const DailyRow = ({ dayData }) => {
           setValue={setValue}
         />
         <Field
-          label="Cancel/Delay"
+          label="Cancel/Postpone"
           name="train_cancel_delay"
           register={register}
           watch={watch}
