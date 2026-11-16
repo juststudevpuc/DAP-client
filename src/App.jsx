@@ -11,14 +11,14 @@ import { CompanySummaryDashboard } from "./pages/admin/CompanySummaryDashboard";
 import { TeamOverviewDashboard } from "./pages/admin/TeamOverviewDashboard";
 import "./App.css";
 import { AboutUs } from "./pages/About-us-Page";
-
 // IMPORT YOUR NEW LAYOUT HERE
 import { LandingLayout } from "./components/layout/LandingLayout"; 
 import { Portfolio } from "./pages/PortfolioPage";
 import { ContactUs } from "./pages/Contact-us-Page";
 import { AdminSettingsPage } from "./pages/super-admin/AdminSettingsPage";
 import Dashboard from "./pages/Dashboard";
-
+import Ai_Analyze from "./pages/Ai_Analyze"; // Import the new Ai_Analyze page
+import Doc_Requirements from "./pages/Doc_Requirements"; // Import the new Doc_Requirements page
 // Placeholder Pages (Replace with dedicated component files when ready)
 
 
@@ -45,7 +45,8 @@ export default function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/weekly-plan" element={<WeeklyPlanDashboard />} />
-
+            <Route path="/ai-analyze" element={<Ai_Analyze />} />
+            <Route path="/doc-requirements" element={<Doc_Requirements />} />
             {/* --- Admin & Super Admin Shared Routes --- */}
             <Route element={<AdminRoute />}>
               <Route
